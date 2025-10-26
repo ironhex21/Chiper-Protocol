@@ -1,0 +1,64 @@
+# Environment Variables
+.env
+.env.local
+.env.*.local
+packages/*/.env
+packages/*/.env.local
+
+# Dependencies
+node_modules
+packages/*/node_modules
+
+# Build Output
+dist
+packages/*/dist
+packages/*/.next
+packages/site/.next
+out
+.turbo
+packages/*/.turbo
+
+# Hardhat
+packages/fhevm-hardhat-template/artifacts
+packages/fhevm-hardhat-template/cache
+packages/fhevm-hardhat-template/deployments
+packages/fhevm-hardhat-template/fhevmTemp
+packages/fhevm-hardhat-template/types
+
+# Testing
+coverage
+packages/*/coverage
+.nyc_output
+
+# OS Files
+.DS_Store
+packages/*/.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+packages/*/.vscode/*
+!packages/*/.vscode/settings.json
+!packages/*/.vscode/extensions.json
+.idea
+*.swp
+*.swo
+*~
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+pnpm-debug.log*
+
+# Temporary Files
+tmp*
+*.tmp
+.cache
