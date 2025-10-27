@@ -74,6 +74,31 @@ export const PrivateVaultABI = {
           "type": "uint256"
         }
       ],
+      "name": "WithdrawRejectedZero",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "user",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "to",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "requestId",
+          "type": "uint256"
+        }
+      ],
       "name": "WithdrawRequested",
       "type": "event"
     },
