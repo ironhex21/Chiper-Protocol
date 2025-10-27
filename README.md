@@ -1,6 +1,6 @@
 # Chiper Protocol - Confidential Transfer
 
-Confidential Transfer protocol with Fully Homomorphic Encryption. Keep your balance private while maintaining full on-chain verifiability powered by Zama FHEVM.
+Chiper Protocol is Confidential Transfer protocol with Fully Homomorphic Encryption. Keep your balance private while maintaining full on-chain verifiability powered by Zama FHEVM.
 
 ## 🔐 Features
 
@@ -12,6 +12,8 @@ Confidential Transfer protocol with Fully Homomorphic Encryption. Keep your bala
 - **✨ Modern UI**: Beautiful animations with progress indicators
 - **🎨 Minimalist Design**: Clean, responsive interface
 - **⚡ Next.js 15 + React 19**: Modern stack with TypeScript
+
+> **⏱️ Note:** Withdrawals take 5-10 minutes due to oracle decryption process. This is normal for FHE-based private transactions. [Learn why →](./WITHDRAWAL_EXPLAINED.md)
 
 ## 📖 How It Works
 
@@ -106,11 +108,11 @@ npm run dev:mock
 
 **Contract Address (Sepolia):**
 ```
-0xF0653052e73aDce6ea08d2396Ed14270817093e1
+0x4d203c455E9D502C9a384361dAE30AE3d325953f
 ```
 
 **Verify on Etherscan:**
-https://sepolia.etherscan.io/address/0xF0653052e73aDce6ea08d2396Ed14270817093e1
+https://sepolia.etherscan.io/address/0x4d203c455E9D502C9a384361dAE30AE3d325953f
 
 ### Deploy Your Own
 
@@ -120,9 +122,17 @@ https://sepolia.etherscan.io/address/0xF0653052e73aDce6ea08d2396Ed14270817093e1
 npm run deploy:sepolia
 ```
 
-2. In your browser open `http://localhost:3000`
+2. Verify contract on Etherscan (optional but recommended)
 
-3. Open the Metamask extension to connect to the Sepolia network
+```sh
+npm run verify:sepolia
+```
+
+See [VERIFY_CONTRACT.md](./VERIFY_CONTRACT.md) for detailed verification guide.
+
+3. In your browser open `http://localhost:3000`
+
+4. Open the Metamask extension to connect to the Sepolia network
 
 ## How to fix Hardhat Node + Metamask Errors ?
 
