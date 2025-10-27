@@ -527,11 +527,11 @@ FHE.makePubliclyDecryptable(_tvl);
 
 **Sepolia Testnet:**
 ```
-0xF0653052e73aDce6ea08d2396Ed14270817093e1
+0x4d203c455E9D502C9a384361dAE30AE3d325953f
 ```
 
 **Verify on Etherscan:**
-https://sepolia.etherscan.io/address/0xF0653052e73aDce6ea08d2396Ed14270817093e1
+https://sepolia.etherscan.io/address/0x4d203c455E9D502C9a384361dAE30AE3d325953f
 
 ---
 
