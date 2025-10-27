@@ -15,6 +15,62 @@ export default async function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              // AGGRESSIVE error suppression - must run FIRST
+              (function() {
+                var suppressError = function(e) {
+                  var err = e.reason || e.error;
+                  
+                  // Suppress [object Object] and user rejections
+                  if (!err || 
+                      err === '[object Object]' ||
+                      String(err) === '[object Object]' ||
+                      (typeof err === 'object' && Object.keys(err).length === 0) ||
+                      err.code === 'ACTION_REJECTED' || 
+                      err.code === 4001 ||
+                      (err.message && (
+                        err.message === '[object Object]' ||
+                        err.message.includes('user rejected') || 
+                        err.message.includes('User denied') ||
+                        err.message.includes('ACTION_REJECTED')
+                      ))) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    e.stopImmediatePropagation();
+                    return false;
+                  }
+                };
+                
+                // Add multiple listeners with capture phase
+                window.addEventListener('unhandledrejection', suppressError, true);
+                window.addEventListener('error', function(e) {
+                  if (e.message === '[object Object]' || !e.message) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    e.stopImmediatePropagation();
+                    return false;
+                  }
+                }, true);
+                
+                // Override console.error to filter [object Object]
+                var originalError = console.error;
+                console.error = function() {
+                  var args = Array.prototype.slice.call(arguments);
+                  var hasObjectObject = args.some(function(arg) {
+                    return String(arg) === '[object Object]' || arg === '[object Object]';
+                  });
+                  if (!hasObjectObject) {
+                    originalError.apply(console, args);
+                  }
+                };
+              })();
+            `,
+          }}
+        />
+      </head>
       <body className={`zama-bg text-foreground antialiased`}>
         <div className="fixed inset-0 w-full h-full zama-bg z-[-20] min-w-[850px]"></div>
         <main className="flex flex-col max-w-screen-lg mx-auto pb-20 min-w-[850px]">
