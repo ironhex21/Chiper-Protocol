@@ -915,12 +915,12 @@ export const PrivateVaultDemo = () => {
                 }, 500);
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               } catch (e: any) {
-                console.error("Deposit error:", e);
                 setDepositProgress(0);
                 
                 if (e?.code === "ACTION_REJECTED" || e?.code === 4001) {
                   showToast("Transaction cancelled by user", "warning");
                 } else {
+                  console.error("Deposit error:", e);
                   showToast(`Deposit failed: ${getErrorMessage(e)}`, "error");
                 }
               }
@@ -1082,13 +1082,13 @@ export const PrivateVaultDemo = () => {
                 // User can close it manually, or it will auto-close when withdrawal completes
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               } catch (e: any) {
-                console.error("Withdrawal error:", e);
                 setShowWithdrawModal(false);
                 setWithdrawModalStep(0);
                 
                 if (e?.code === "ACTION_REJECTED" || e?.code === 4001) {
                   showToast("Transaction cancelled by user", "warning");
                 } else {
+                  console.error("Withdrawal error:", e);
                   showToast(`Withdrawal failed: ${getErrorMessage(e)}`, "error");
                 }
               }
