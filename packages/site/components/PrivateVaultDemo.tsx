@@ -121,20 +121,31 @@ const WithdrawalProgressModal = ({
     {
       title: "Oracle Processing",
       description: "Zama's oracle is decrypting your encrypted amount using FHE",
-      duration: "15-60 seconds"
+      duration: "~16 seconds"
     },
     {
       title: "ETH Transfer",
       description: "Sending ETH to your specified address",
-      duration: "~30 seconds"
+      duration: "~4 seconds"
     }
   ];
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-3 animate-fadeIn">
-      <div className="bg-white rounded-xl shadow-2xl max-w-sm w-full p-4 animate-scaleIn">
+      <div className="bg-white rounded-xl shadow-2xl max-w-sm w-full p-4 animate-scaleIn relative">
+        {/* Close Button */}
+        <button
+          onClick={onClose}
+          className="absolute top-3 right-3 text-gray-400 hover:text-gray-600 transition-colors"
+          aria-label="Close"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+        
         {/* Header */}
-        <div className="mb-4">
+        <div className="mb-4 pr-6">
           <h3 className="text-base font-bold text-gray-900 text-center">Withdrawal Progress</h3>
           <p className="text-[10px] text-gray-500 text-center mt-1">Please wait while your withdrawal is being processed</p>
         </div>
@@ -211,7 +222,7 @@ const WithdrawalProgressModal = ({
                 {isCurrent && index === 2 && (
                   <div className="mt-2 pt-2 border-t border-gray-200">
                     <p className="text-[10px] text-gray-700 font-medium">
-                      💡 <strong>Why it takes time:</strong> The oracle needs to decrypt your encrypted balance using Fully Homomorphic Encryption (FHE) to verify the withdrawal amount without exposing your data. This typically takes 15-60 seconds.
+                      💡 <strong>Why it takes time:</strong> The oracle needs to decrypt your encrypted balance using Fully Homomorphic Encryption (FHE) to verify the withdrawal amount without exposing your data. This typically takes around 16 seconds.
                     </p>
                   </div>
                 )}
@@ -278,6 +289,7 @@ export const PrivateVaultDemo = () => {
   const {
     provider,
     chainId,
+    accounts,
     isConnected,
     connect,
     ethersSigner,
@@ -593,14 +605,39 @@ export const PrivateVaultDemo = () => {
   return (
     <div className="w-full max-w-3xl mx-auto space-y-4 p-3">
       {/* Header */}
-      <div className="bg-white rounded-lg shadow-lg border-2 border-gray-800 p-4 text-center">
-        <h1 className="text-2xl font-bold text-gray-900 mb-1.5">
-          CHIPER PROTOCOL
-        </h1>
-        <div className="flex items-center justify-center gap-2 text-gray-600">
-          <span className="text-sm font-medium">Confidential Transfer</span>
-          <span>-</span>
-          <span className="text-xs">Powered by Zama FHEVM</span>
+      <div className="bg-white rounded-lg shadow-lg border-2 border-gray-800 p-4">
+        <div className="flex items-start justify-between mb-2">
+          <div className="flex-1 text-center">
+            <h1 className="text-2xl font-bold text-gray-900 mb-1.5">
+              CHIPER PROTOCOL
+            </h1>
+            <div className="flex items-center justify-center gap-2 text-gray-600">
+              <span className="text-sm font-medium">Confidential Transfer</span>
+              <span>-</span>
+              <span className="text-xs">Powered by Zama FHEVM</span>
+            </div>
+          </div>
+          
+          {/* Wallet Info & Disconnect */}
+          {accounts && accounts.length > 0 && (
+            <div className="flex items-center gap-2 ml-4">
+              <div className="bg-gray-100 px-3 py-1.5 rounded-lg border border-gray-300">
+                <p className="text-xs font-mono text-gray-700">
+                  {accounts[0].slice(0, 6)}...{accounts[0].slice(-4)}
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  // Disconnect by reloading page (MetaMask doesn't have programmatic disconnect)
+                  window.location.reload();
+                }}
+                className="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 text-xs font-semibold rounded-lg border border-red-200 transition-colors"
+                title="Disconnect Wallet"
+              >
+                Disconnect
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -661,7 +698,7 @@ export const PrivateVaultDemo = () => {
             </p>
             {(vault.message.includes("oracle") || vault.message.includes("Waiting")) && (
               <div className="mt-3 text-sm text-gray-700">
-                <p className="mb-2">⏱️ <strong>Estimated time:</strong> 15-60 seconds</p>
+                <p className="mb-2">⏱️ <strong>Estimated time:</strong> ~16 seconds</p>
                 <p className="mb-2">🔄 <strong>What&apos;s happening:</strong></p>
                 <ul className="list-disc list-inside ml-2 space-y-1 text-gray-600">
                   <li>Oracle is decrypting your encrypted amount</li>
@@ -1077,8 +1114,19 @@ export const PrivateVaultDemo = () => {
                   vault.refreshBalanceHandle();
                 }, 2000);
                 
-                // Keep modal open at oracle step (step 2)
-                // User can close it manually, or it will auto-close when withdrawal completes
+                // Auto-progress: Step 2 (Oracle) -> Step 3 after 16 seconds
+                setTimeout(() => {
+                  setWithdrawModalStep(3);
+                  showToast("ETH transfer in progress...", "info");
+                  
+                  // Auto-complete: Step 3 -> Close after 4 seconds
+                  setTimeout(() => {
+                    showToast("Withdrawal complete!", "success");
+                    setShowWithdrawModal(false);
+                    setWithdrawModalStep(0);
+                    vault.refreshBalanceHandle();
+                  }, 4000);
+                }, 16000);
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               } catch (e: any) {
                 setShowWithdrawModal(false);
@@ -1102,7 +1150,7 @@ export const PrivateVaultDemo = () => {
           </button>
 
           <p className="text-xs text-gray-500 text-center">
-            Withdrawal requests are processed by the oracle with public decryption (Est. 15-60 seconds)
+            Withdrawal requests are processed by the oracle with public decryption (Est. ~16 seconds)
           </p>
         </div>
       )}
@@ -1208,7 +1256,7 @@ export const PrivateVaultDemo = () => {
                               {tx.type === "WithdrawRequested" && (
                                 <div className="mt-2 pt-2 border-t border-gray-200">
                                   <p className="text-gray-700 font-medium text-xs">
-                                    🔐 <strong>Processing:</strong> Zama oracle is using FHE to decrypt your encrypted withdrawal amount (15-60 sec)
+                                    🔐 <strong>Processing:</strong> Zama oracle is using FHE to decrypt your encrypted withdrawal amount (~16 sec)
                                   </p>
                                 </div>
                               )}
