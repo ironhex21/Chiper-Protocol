@@ -548,7 +548,7 @@ export const PrivateVaultDemo = () => {
       setCopied(true);
       showToast("Address copied!", "success");
       setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
+    } catch {
       showToast("Failed to copy", "error");
     }
   };
@@ -558,7 +558,6 @@ export const PrivateVaultDemo = () => {
   
   // Deposit steps
   const depositSteps = ["Confirm transaction", "Processing deposit", "Updating balance"];
-  const withdrawSteps = ["Encrypt amount", "Request withdrawal", "Oracle processing", "Transfer complete"];
 
   // Styles
   const buttonClass =
@@ -569,11 +568,6 @@ export const PrivateVaultDemo = () => {
 
   const cardClass =
     "bg-white rounded-2xl shadow-xl p-6 border border-gray-100 hover:shadow-2xl transition-shadow duration-200";
-
-  const inputClass =
-    "w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent transition-all";
-
-  const labelClass = "block text-sm font-semibold text-gray-700 mb-2";
 
   if (!isConnected) {
     return (
@@ -919,6 +913,7 @@ export const PrivateVaultDemo = () => {
                   setDepositAmount("");
                   setTimeout(() => setDepositProgress(0), 1000);
                 }, 500);
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               } catch (e: any) {
                 console.error("Deposit error:", e);
                 setDepositProgress(0);
@@ -1085,6 +1080,7 @@ export const PrivateVaultDemo = () => {
                 
                 // Keep modal open at oracle step (step 2)
                 // User can close it manually, or it will auto-close when withdrawal completes
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               } catch (e: any) {
                 console.error("Withdrawal error:", e);
                 setShowWithdrawModal(false);
