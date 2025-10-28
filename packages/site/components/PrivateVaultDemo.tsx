@@ -131,16 +131,16 @@ const WithdrawalProgressModal = ({
   ];
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fadeIn">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 animate-scaleIn">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-3 animate-fadeIn">
+      <div className="bg-white rounded-xl shadow-2xl max-w-sm w-full p-4 animate-scaleIn">
         {/* Header */}
-        <div className="mb-6">
-          <h3 className="text-xl font-bold text-gray-900 text-center">Withdrawal Progress</h3>
-          <p className="text-xs text-gray-500 text-center mt-1">Please wait while your withdrawal is being processed</p>
+        <div className="mb-4">
+          <h3 className="text-base font-bold text-gray-900 text-center">Withdrawal Progress</h3>
+          <p className="text-[10px] text-gray-500 text-center mt-1">Please wait while your withdrawal is being processed</p>
         </div>
 
         {/* Progress Steps */}
-        <div className="space-y-4">
+        <div className="space-y-3">
           {steps.map((step, index) => {
             const isCompleted = index < currentStep;
             const isCurrent = index === currentStep;
@@ -149,7 +149,7 @@ const WithdrawalProgressModal = ({
             return (
               <div
                 key={index}
-                className={`relative border-2 rounded-lg p-4 transition-all duration-300 ${
+                className={`relative border-2 rounded-lg p-3 transition-all duration-300 ${
                   isCompleted
                     ? "border-gray-300 bg-white"
                     : isCurrent
@@ -160,7 +160,7 @@ const WithdrawalProgressModal = ({
                 {/* Step Icon */}
                 <div className="flex items-start gap-3">
                   <div
-                    className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 transition-all duration-300 ${
+                    className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 transition-all duration-300 ${
                       isCompleted
                         ? "bg-gray-700 text-white"
                         : isCurrent
@@ -169,32 +169,32 @@ const WithdrawalProgressModal = ({
                     }`}
                   >
                     {isCompleted ? (
-                      <span className="text-lg">✓</span>
+                      <span className="text-sm">✓</span>
                     ) : isCurrent ? (
                       <LoadingSpinner size="sm" />
                     ) : (
-                      <span className="text-sm font-bold">{index + 1}</span>
+                      <span className="text-xs font-bold">{index + 1}</span>
                     )}
                   </div>
 
                   {/* Step Content */}
                   <div className="flex-1">
                     <h4
-                      className={`font-bold text-sm mb-1 ${
+                      className={`font-bold text-xs mb-1 ${
                         isPending ? "text-gray-500" : "text-gray-900"
                       }`}
                     >
                       {step.title}
                     </h4>
                     <p
-                      className={`text-xs mb-2 ${
+                      className={`text-[10px] mb-1.5 ${
                         isPending ? "text-gray-400" : "text-gray-600"
                       }`}
                     >
                       {step.description}
                     </p>
                     <p
-                      className={`text-xs font-medium ${
+                      className={`text-[10px] font-medium ${
                         isPending
                           ? "text-gray-400"
                           : isCurrent
@@ -209,8 +209,8 @@ const WithdrawalProgressModal = ({
 
                 {/* Special message for oracle step */}
                 {isCurrent && index === 2 && (
-                  <div className="mt-3 pt-3 border-t border-gray-200">
-                    <p className="text-xs text-gray-700 font-medium">
+                  <div className="mt-2 pt-2 border-t border-gray-200">
+                    <p className="text-[10px] text-gray-700 font-medium">
                       💡 <strong>Why it takes time:</strong> The oracle needs to decrypt your encrypted balance using Fully Homomorphic Encryption (FHE) to verify the withdrawal amount without exposing your data. This typically takes 15-60 seconds.
                     </p>
                   </div>
@@ -222,19 +222,18 @@ const WithdrawalProgressModal = ({
 
         {/* Footer Info */}
         {currentStep < 3 && (
-          <div className="mt-6 bg-gray-50 border border-gray-200 rounded-lg p-3">
-            <p className="text-xs text-gray-700">
+          <div className="mt-4 bg-gray-50 border border-gray-200 rounded-lg p-2.5">
+            <p className="text-[10px] text-gray-700">
               <strong>⚠️ Please wait:</strong> Do not close this window or refresh the page. The process is running on the blockchain.
             </p>
           </div>
         )}
 
         {currentStep >= 3 && (
-          <div className="mt-6">
+          <div className="mt-2">
             <button
               onClick={onClose}
-              className="w-full py-3 bg-yellow-500 text-white font-semibold rounded-lg hover:bg-yellow-600 transition-all"
-            >
+              className="w-full py-2 bg-yellow-500 text-white text-sm font-semibold rounded-lg hover:bg-yellow-600 transition-all">
               ✓ Close
             </button>
           </div>
@@ -561,26 +560,26 @@ export const PrivateVaultDemo = () => {
 
   // Styles
   const buttonClass =
-    "inline-flex items-center justify-center rounded-xl bg-yellow-500 px-6 py-3 font-semibold text-white shadow-lg " +
-    "transition-all duration-200 hover:bg-yellow-600 hover:shadow-xl active:scale-95 " +
+    "inline-flex items-center justify-center rounded-lg bg-yellow-500 px-4 py-2 text-sm font-semibold text-white shadow-md " +
+    "transition-all duration-200 hover:bg-yellow-600 hover:shadow-lg active:scale-95 " +
     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-yellow-400 focus-visible:ring-offset-2 " +
     "disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100";
 
   const cardClass =
-    "bg-white rounded-2xl shadow-xl p-6 border border-gray-100 hover:shadow-2xl transition-shadow duration-200";
+    "bg-white rounded-xl shadow-lg p-4 border border-gray-100 hover:shadow-xl transition-shadow duration-200";
 
   if (!isConnected) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
+      <div className="flex items-center justify-center min-h-[300px]">
         <div className={cardClass + " text-center"}>
-          <h2 className="text-3xl font-bold text-gray-800 mb-4">
+          <h2 className="text-2xl font-bold text-gray-800 mb-3">
             Confidential Transfer
           </h2>
-          <p className="text-gray-600 mb-6">
+          <p className="text-sm text-gray-600 mb-4">
             Connect your wallet to access your encrypted balance
           </p>
           <button className={buttonClass} onClick={connect}>
-            <span className="text-lg">Connect to MetaMask</span>
+            <span className="text-base">Connect to MetaMask</span>
           </button>
         </div>
       </div>
@@ -592,24 +591,24 @@ export const PrivateVaultDemo = () => {
   }
 
   return (
-    <div className="w-full max-w-4xl mx-auto space-y-6 p-4">
+    <div className="w-full max-w-3xl mx-auto space-y-4 p-3">
       {/* Header */}
-      <div className="bg-white rounded-lg shadow-lg border-2 border-gray-800 p-6 text-center">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">
+      <div className="bg-white rounded-lg shadow-lg border-2 border-gray-800 p-4 text-center">
+        <h1 className="text-2xl font-bold text-gray-900 mb-1.5">
           CHIPER PROTOCOL
         </h1>
-        <div className="flex items-center justify-center gap-3 text-gray-600">
-          <span className="font-medium">Confidential Transfer</span>
+        <div className="flex items-center justify-center gap-2 text-gray-600">
+          <span className="text-sm font-medium">Confidential Transfer</span>
           <span>-</span>
-          <span className="text-sm">Powered by Zama FHEVM</span>
+          <span className="text-xs">Powered by Zama FHEVM</span>
         </div>
       </div>
 
       {/* Tab Navigation */}
-      <div className="bg-white rounded-lg shadow-md border border-gray-200 p-2 flex gap-2">
+      <div className="bg-white rounded-lg shadow-md border border-gray-200 p-1.5 flex gap-1.5">
         <button
           onClick={() => setActiveTab("deposit")}
-          className={`flex-1 py-3 px-6 rounded-lg font-semibold transition-all ${
+          className={`flex-1 py-2 px-4 text-sm rounded-lg font-semibold transition-all ${
             activeTab === "deposit"
               ? "bg-yellow-500 text-white shadow-md"
               : "text-gray-600 hover:bg-gray-100"
@@ -619,7 +618,7 @@ export const PrivateVaultDemo = () => {
         </button>
         <button
           onClick={() => setActiveTab("withdraw")}
-          className={`flex-1 py-3 px-6 rounded-lg font-semibold transition-all ${
+          className={`flex-1 py-2 px-4 text-sm rounded-lg font-semibold transition-all ${
             activeTab === "withdraw"
               ? "bg-yellow-500 text-white shadow-md"
               : "text-gray-600 hover:bg-gray-100"
@@ -629,7 +628,7 @@ export const PrivateVaultDemo = () => {
         </button>
         <button
           onClick={() => setActiveTab("history")}
-          className={`flex-1 py-3 px-6 rounded-lg font-semibold transition-all ${
+          className={`flex-1 py-2 px-4 text-sm rounded-lg font-semibold transition-all ${
             activeTab === "history"
               ? "bg-yellow-500 text-white shadow-md"
               : "text-gray-600 hover:bg-gray-100"
@@ -642,7 +641,7 @@ export const PrivateVaultDemo = () => {
       {/* Status Message */}
       {vault.message && !vault.message.includes("deployment not found") && (
         <div
-          className={`bg-white rounded-lg shadow-md p-6 border ${
+          className={`bg-white rounded-lg shadow-md p-4 border ${
             vault.message.includes("failed") || vault.message.includes("error")
               ? "border-red-200 bg-red-50"
               : vault.message.includes("oracle") || vault.message.includes("Waiting")
@@ -778,10 +777,10 @@ export const PrivateVaultDemo = () => {
 
       {/* Tab Content */}
       {activeTab === "deposit" && (
-        <div className="bg-white rounded-lg shadow-lg border border-gray-200 p-6 space-y-6">
+        <div className="bg-white rounded-lg shadow-lg border border-gray-200 p-4 space-y-4">
           {/* Section Header */}
-          <div className="border-b-2 border-gray-800 pb-3">
-            <h2 className="text-lg font-bold text-gray-900">DEPOSIT</h2>
+          <div className="border-b-2 border-gray-800 pb-2">
+            <h2 className="text-base font-bold text-gray-900">DEPOSIT</h2>
             <p className="text-sm text-gray-600 mt-1">
               Deposit ETH to encrypted vault for private use
             </p>
@@ -941,10 +940,10 @@ export const PrivateVaultDemo = () => {
       )}
 
       {activeTab === "withdraw" && (
-        <div className="bg-white rounded-lg shadow-lg border border-gray-200 p-6 space-y-6">
+        <div className="bg-white rounded-lg shadow-lg border border-gray-200 p-4 space-y-4">
           {/* Section Header */}
-          <div className="border-b-2 border-gray-800 pb-3">
-            <h2 className="text-lg font-bold text-gray-900">WITHDRAW</h2>
+          <div className="border-b-2 border-gray-800 pb-2">
+            <h2 className="text-base font-bold text-gray-900">WITHDRAW</h2>
             <p className="text-sm text-gray-600 mt-1">
               Decrypt your balance in the vault first to ensure that your balance is not empty in the vault
             </p>
@@ -1109,10 +1108,10 @@ export const PrivateVaultDemo = () => {
       )}
 
       {activeTab === "history" && (
-        <div className="bg-white rounded-lg shadow-lg border border-gray-200 p-6 space-y-6">
+        <div className="bg-white rounded-lg shadow-lg border border-gray-200 p-4 space-y-4">
           {/* Section Header */}
-          <div className="border-b-2 border-gray-800 pb-3">
-            <h2 className="text-lg font-bold text-gray-900">TRANSACTION HISTORY</h2>
+          <div className="border-b-2 border-gray-800 pb-2">
+            <h2 className="text-base font-bold text-gray-900">TRANSACTION HISTORY</h2>
             <p className="text-sm text-gray-600 mt-1">
               View your deposit and withdrawal history
             </p>
