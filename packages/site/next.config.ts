@@ -5,7 +5,7 @@ const nextConfig: NextConfig = {
     // Required by FHEVM 
     return Promise.resolve([
       {
-        source: '/',
+        source: '/:path*',
         headers: [
           {
             key: 'Cross-Origin-Opener-Policy',
