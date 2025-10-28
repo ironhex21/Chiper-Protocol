@@ -11,6 +11,7 @@
   ],
   "scripts": {
     "postinstall": "node ./scripts/postinstall.mjs",
+    "build": "cd packages/site && npm run build",
     "dev:mock": "npx -w ./packages/site npm run dev:mock",
     "generate-abi": "node ./scripts/generate-site-abi.mjs",
     "is-hardhat-node-running": "node ./scripts/is-hardhat-node-running.mjs",
