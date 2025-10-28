@@ -71,12 +71,12 @@ export default async function RootLayout({
           }}
         />
       </head>
-      <body className={`zama-bg text-foreground antialiased`}>
-        <div className="fixed inset-0 w-full h-full zama-bg z-[-20] min-w-[850px]"></div>
+      <body className={`bg-white text-foreground antialiased`}>
+        <div className="fixed inset-0 w-full h-full bg-white z-[-20] min-w-[850px]"></div>
         <main className="flex flex-col max-w-screen-lg mx-auto pb-20 min-w-[850px]">
           <nav className="flex w-full px-3 md:px-0 h-fit py-10 justify-between items-center">
-            <div className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
-              Chiper Protocol
+            <div className="text-2xl font-black text-gray-900 uppercase tracking-tight">
+              CHIPER PROTOCOL
             </div>
           </nav>
           <Providers>{children}</Providers>
