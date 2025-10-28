@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { Providers } from "./providers";
-import Image from "next/image";
 
 export const metadata: Metadata = {
   title: "Chiper Protocol - Confidential Transfer",

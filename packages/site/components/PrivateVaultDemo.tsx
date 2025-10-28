@@ -245,6 +245,7 @@ const WithdrawalProgressModal = ({
 };
 
 // Helper to safely extract error message
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const getErrorMessage = (error: any): string => {
   if (typeof error === 'string') return error;
   
@@ -262,6 +263,7 @@ const getErrorMessage = (error: any): string => {
     return 'Transaction rejected by user';
   }
   
+  // Standard error extraction
   if (error?.message) return error.message;
   if (error?.reason) return error.reason;
   if (error?.data?.message) return error.data.message;
@@ -324,7 +326,6 @@ export const PrivateVaultDemo = () => {
   
   // Progress tracking
   const [depositProgress, setDepositProgress] = useState(0);
-  const [withdrawProgress, setWithdrawProgress] = useState(0);
   
   // Withdrawal modal state
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
@@ -369,7 +370,7 @@ export const PrivateVaultDemo = () => {
         // Listen for Withdrawn event
         const filter = vaultContract.filters.Withdrawn(userAddress);
         
-        const handleWithdrawn = (user: string, to: string, amount: bigint, event: any) => {
+        const handleWithdrawn = (user: string, to: string, amount: bigint) => {
           console.log("Withdrawn event detected:", { user, to, amount: amount.toString() });
           
           // Update to step 3 (ETH Transfer complete)
@@ -398,6 +399,7 @@ export const PrivateVaultDemo = () => {
     };
     
     setupWithdrawnListener();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showWithdrawModal, withdrawModalStep, vault.vault.address, ethersSigner]);
   
   // Fetch wallet balance
@@ -531,6 +533,7 @@ export const PrivateVaultDemo = () => {
     if (activeTab === "history") {
       fetchTransactionHistory();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [vault.vault.address, ethersSigner, vault.isDeployed, activeTab]);
   
   // Show toast helper
@@ -666,7 +669,7 @@ export const PrivateVaultDemo = () => {
             {(vault.message.includes("oracle") || vault.message.includes("Waiting")) && (
               <div className="mt-3 text-sm text-gray-700">
                 <p className="mb-2">⏱️ <strong>Estimated time:</strong> 15-60 seconds</p>
-                <p className="mb-2">🔄 <strong>What's happening:</strong></p>
+                <p className="mb-2">🔄 <strong>What&apos;s happening:</strong></p>
                 <ul className="list-disc list-inside ml-2 space-y-1 text-gray-600">
                   <li>Oracle is decrypting your encrypted amount</li>
                   <li>ETH will be sent once decryption completes</li>
@@ -749,7 +752,7 @@ export const PrivateVaultDemo = () => {
             <div className="flex items-center justify-between bg-gray-50 border border-gray-200 rounded-lg p-3">
               <div className="flex-1">
                 <p className="text-xs text-gray-700 font-medium">💡 To view your balance:</p>
-                <p className="text-xs text-gray-600 mt-1">Click the "Decrypt" button to decrypt your encrypted balance using your wallet</p>
+                <p className="text-xs text-gray-600 mt-1">Click the &quot;Decrypt&quot; button to decrypt your encrypted balance using your wallet</p>
               </div>
               <button
                 className="ml-3 px-4 py-2 rounded-lg bg-yellow-500 text-white font-semibold text-sm hover:bg-yellow-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
@@ -757,7 +760,7 @@ export const PrivateVaultDemo = () => {
                 onClick={async () => {
                   try {
                     await vault.decryptBalance();
-                  } catch (e: any) {
+                  } catch (e) {
                     showToast(`Decrypt failed: ${getErrorMessage(e)}`, "error");
                   }
                 }}
@@ -1004,13 +1007,6 @@ export const PrivateVaultDemo = () => {
               disabled={vault.isProcessing || (vault.clearBalance?.clear === BigInt(0))}
             />
           </div>
-
-          {/* Withdraw Progress */}
-          {vault.isProcessing && withdrawProgress > 0 && (
-            <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
-              <ProgressSteps steps={withdrawSteps} currentStep={withdrawProgress} />
-            </div>
-          )}
 
           {/* Withdraw Button */}
           <button
