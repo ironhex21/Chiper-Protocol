@@ -27,6 +27,37 @@ import {
 import { FHECounterAddresses } from "@/abi/FHECounterAddresses";
 import { FHECounterABI } from "@/abi/FHECounterABI";
 
+// Safe error message extractor
+const getErrorMessage = (error: any): string => {
+  if (typeof error === 'string') return error;
+  
+  // Handle ethers.js CALL_EXCEPTION
+  if (error?.code === 'CALL_EXCEPTION') {
+    if (error?.reason) return error.reason;
+    if (error?.message?.includes('missing revert data')) {
+      return 'Contract call failed (missing revert data). Try refreshing.';
+    }
+    return 'Contract call failed. Please try again.';
+  }
+  
+  // Handle user rejection
+  if (error?.code === 'ACTION_REJECTED' || error?.code === 4001) {
+    return 'Transaction rejected by user';
+  }
+  
+  // Standard error extraction
+  if (error?.message) return error.message;
+  if (error?.reason) return error.reason;
+  if (error?.data?.message) return error.data.message;
+  if (error?.error?.message) return error.error.message;
+  
+  try {
+    return JSON.stringify(error);
+  } catch {
+    return 'Unknown error occurred';
+  }
+};
+
 export type ClearValueType = {
   handle: string;
   clear: string | bigint | boolean;
@@ -202,8 +233,17 @@ export const useFHECounter = (parameters: {
         isRefreshingRef.current = false;
         setIsRefreshing(false);
       })
-      .catch((e) => {
-        setMessage("FHECounter.getCount() call failed! error=" + e);
+      .catch((e: any) => {
+        console.error("[useFHECounter] getCount() error:", e);
+        
+        // Handle specific errors more gracefully
+        if (e?.code === 'CALL_EXCEPTION' && e?.message?.includes('missing revert data')) {
+          console.warn("[useFHECounter] ACL permission issue detected, will retry on next refresh");
+          setCountHandle(undefined);
+          setMessage(""); // Clear any previous errors
+        } else {
+          setMessage("Failed to fetch count: " + getErrorMessage(e));
+        }
 
         isRefreshingRef.current = false;
         setIsRefreshing(false);
@@ -337,13 +377,21 @@ export const useFHECounter = (parameters: {
         setMessage(
           "Count handle clear value is " + clearCountRef.current.clear
         );
+      } catch (e: any) {
+        console.error("[useFHECounter] decrypt error:", e);
+        setMessage("Decrypt failed: " + getErrorMessage(e));
       } finally {
         isDecryptingRef.current = false;
         setIsDecrypting(false);
       }
     };
 
-    run();
+    run().catch((e: any) => {
+      console.error("[useFHECounter] run() error:", e);
+      setMessage("Decrypt failed: " + getErrorMessage(e));
+      isDecryptingRef.current = false;
+      setIsDecrypting(false);
+    });
   }, [
     fhevmDecryptionSignatureStorage,
     ethersSigner,
