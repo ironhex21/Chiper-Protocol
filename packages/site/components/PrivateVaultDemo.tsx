@@ -95,9 +95,173 @@ const ProgressSteps = ({
   );
 };
 
+// Withdrawal Progress Modal Component
+const WithdrawalProgressModal = ({
+  isOpen,
+  currentStep,
+  onClose,
+}: {
+  isOpen: boolean;
+  currentStep: number;
+  onClose: () => void;
+}) => {
+  if (!isOpen) return null;
+
+  const steps = [
+    {
+      title: "Encrypting Amount",
+      description: "Using FHE (Fully Homomorphic Encryption) to encrypt withdrawal amount",
+      duration: "~5 seconds"
+    },
+    {
+      title: "Submitting Request",
+      description: "Sending encrypted withdrawal request to smart contract",
+      duration: "~10 seconds"
+    },
+    {
+      title: "Oracle Processing",
+      description: "Zama's oracle is decrypting your encrypted amount using FHE",
+      duration: "15-60 seconds"
+    },
+    {
+      title: "ETH Transfer",
+      description: "Sending ETH to your specified address",
+      duration: "~30 seconds"
+    }
+  ];
+
+  return (
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fadeIn">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 animate-scaleIn">
+        {/* Header */}
+        <div className="mb-6">
+          <h3 className="text-xl font-bold text-gray-900 text-center">Withdrawal Progress</h3>
+          <p className="text-xs text-gray-500 text-center mt-1">Please wait while your withdrawal is being processed</p>
+        </div>
+
+        {/* Progress Steps */}
+        <div className="space-y-4">
+          {steps.map((step, index) => {
+            const isCompleted = index < currentStep;
+            const isCurrent = index === currentStep;
+            const isPending = index > currentStep;
+
+            return (
+              <div
+                key={index}
+                className={`relative border-2 rounded-lg p-4 transition-all duration-300 ${
+                  isCompleted
+                    ? "border-gray-300 bg-white"
+                    : isCurrent
+                    ? "border-yellow-400 bg-yellow-50 shadow-md"
+                    : "border-gray-200 bg-gray-50"
+                }`}
+              >
+                {/* Step Icon */}
+                <div className="flex items-start gap-3">
+                  <div
+                    className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 transition-all duration-300 ${
+                      isCompleted
+                        ? "bg-gray-700 text-white"
+                        : isCurrent
+                        ? "bg-yellow-500 text-white animate-pulse"
+                        : "bg-gray-300 text-gray-500"
+                    }`}
+                  >
+                    {isCompleted ? (
+                      <span className="text-lg">✓</span>
+                    ) : isCurrent ? (
+                      <LoadingSpinner size="sm" />
+                    ) : (
+                      <span className="text-sm font-bold">{index + 1}</span>
+                    )}
+                  </div>
+
+                  {/* Step Content */}
+                  <div className="flex-1">
+                    <h4
+                      className={`font-bold text-sm mb-1 ${
+                        isPending ? "text-gray-500" : "text-gray-900"
+                      }`}
+                    >
+                      {step.title}
+                    </h4>
+                    <p
+                      className={`text-xs mb-2 ${
+                        isPending ? "text-gray-400" : "text-gray-600"
+                      }`}
+                    >
+                      {step.description}
+                    </p>
+                    <p
+                      className={`text-xs font-medium ${
+                        isPending
+                          ? "text-gray-400"
+                          : isCurrent
+                          ? "text-yellow-600"
+                          : "text-gray-600"
+                      }`}
+                    >
+                      {isCurrent ? `⏱ ${step.duration}` : step.duration}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Special message for oracle step */}
+                {isCurrent && index === 2 && (
+                  <div className="mt-3 pt-3 border-t border-gray-200">
+                    <p className="text-xs text-gray-700 font-medium">
+                      💡 <strong>Why it takes time:</strong> The oracle needs to decrypt your encrypted balance using Fully Homomorphic Encryption (FHE) to verify the withdrawal amount without exposing your data. This typically takes 15-60 seconds.
+                    </p>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Footer Info */}
+        {currentStep < 3 && (
+          <div className="mt-6 bg-gray-50 border border-gray-200 rounded-lg p-3">
+            <p className="text-xs text-gray-700">
+              <strong>⚠️ Please wait:</strong> Do not close this window or refresh the page. The process is running on the blockchain.
+            </p>
+          </div>
+        )}
+
+        {currentStep >= 3 && (
+          <div className="mt-6">
+            <button
+              onClick={onClose}
+              className="w-full py-3 bg-yellow-500 text-white font-semibold rounded-lg hover:bg-yellow-600 transition-all"
+            >
+              ✓ Close
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 // Helper to safely extract error message
 const getErrorMessage = (error: any): string => {
   if (typeof error === 'string') return error;
+  
+  // Handle ethers.js CALL_EXCEPTION
+  if (error?.code === 'CALL_EXCEPTION') {
+    if (error?.reason) return error.reason;
+    if (error?.message?.includes('missing revert data')) {
+      return 'Contract call failed. This may be an ACL permission or network issue. Try again.';
+    }
+    return 'Contract call failed. Please try again.';
+  }
+  
+  // Handle user rejection
+  if (error?.code === 'ACTION_REJECTED' || error?.code === 4001) {
+    return 'Transaction rejected by user';
+  }
+  
   if (error?.message) return error.message;
   if (error?.reason) return error.reason;
   if (error?.data?.message) return error.data.message;
@@ -144,10 +308,16 @@ export const PrivateVaultDemo = () => {
     sameSigner,
   });
 
+  // Tab state
+  const [activeTab, setActiveTab] = useState<"deposit" | "withdraw" | "history">("deposit");
+  
   // Form states
   const [depositAmount, setDepositAmount] = useState("");
   const [withdrawAmount, setWithdrawAmount] = useState("");
   const [withdrawTo, setWithdrawTo] = useState("");
+  
+  // Copy state
+  const [copied, setCopied] = useState(false);
   
   // Toast notification state
   const [toast, setToast] = useState<{message: string; type: "success" | "error" | "info" | "warning"} | null>(null);
@@ -156,10 +326,232 @@ export const PrivateVaultDemo = () => {
   const [depositProgress, setDepositProgress] = useState(0);
   const [withdrawProgress, setWithdrawProgress] = useState(0);
   
+  // Withdrawal modal state
+  const [showWithdrawModal, setShowWithdrawModal] = useState(false);
+  const [withdrawModalStep, setWithdrawModalStep] = useState(0);
+  
+  // Deposit history (mock for now)
+  const [depositReceipt, setDepositReceipt] = useState<{amount: string; timestamp: string; txHash: string} | null>(null);
+  
+  // Transaction history from blockchain
+  type Transaction = {
+    type: "Deposit" | "Withdraw" | "WithdrawRequested" | "WithdrawRejected";
+    amount: string;
+    timestamp: number;
+    txHash: string;
+    to?: string;
+    blockNumber: number;
+  };
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+  
+  // Wallet ETH balance
+  const [walletBalance, setWalletBalance] = useState<string>("0");
+  
+  // Listen for Withdrawn event to complete step 3
+  useEffect(() => {
+    if (!showWithdrawModal || withdrawModalStep !== 2 || !vault.vault.address || !ethersSigner) {
+      return;
+    }
+    
+    const vaultAddress = vault.vault.address;
+    if (!vaultAddress) return;
+    
+    const setupWithdrawnListener = async () => {
+      try {
+        const userAddress = await ethersSigner.getAddress();
+        const vaultContract = new ethers.Contract(
+          vaultAddress,
+          vault.vault.abi,
+          ethersSigner.provider
+        );
+        
+        // Listen for Withdrawn event
+        const filter = vaultContract.filters.Withdrawn(userAddress);
+        
+        const handleWithdrawn = (user: string, to: string, amount: bigint, event: any) => {
+          console.log("Withdrawn event detected:", { user, to, amount: amount.toString() });
+          
+          // Update to step 3 (ETH Transfer complete)
+          setWithdrawModalStep(3);
+          showToast(`Withdrawal complete! ${ethers.formatUnits(amount, 18)} ETH sent to ${to}`, "success");
+          
+          // Auto close modal after 3 seconds
+          setTimeout(() => {
+            setShowWithdrawModal(false);
+            setWithdrawModalStep(0);
+          }, 3000);
+          
+          // Refresh balance
+          vault.refreshBalanceHandle();
+        };
+        
+        vaultContract.once(filter, handleWithdrawn);
+        
+        // Cleanup
+        return () => {
+          vaultContract.off(filter, handleWithdrawn);
+        };
+      } catch (error) {
+        console.error("Failed to setup Withdrawn listener:", error);
+      }
+    };
+    
+    setupWithdrawnListener();
+  }, [showWithdrawModal, withdrawModalStep, vault.vault.address, ethersSigner]);
+  
+  // Fetch wallet balance
+  useEffect(() => {
+    const fetchWalletBalance = async () => {
+      if (ethersSigner) {
+        try {
+          const address = await ethersSigner.getAddress();
+          const balance = await ethersSigner.provider.getBalance(address);
+          setWalletBalance(ethers.formatEther(balance));
+        } catch (error) {
+          console.error("Failed to fetch wallet balance:", error);
+        }
+      }
+    };
+    
+    fetchWalletBalance();
+    
+    // Refresh balance every 10 seconds
+    const interval = setInterval(fetchWalletBalance, 10000);
+    return () => clearInterval(interval);
+  }, [ethersSigner]);
+  
+  // Fetch transaction history from blockchain
+  useEffect(() => {
+    const fetchTransactionHistory = async () => {
+      if (!vault.vault.address || !ethersSigner || !vault.isDeployed) {
+        return;
+      }
+      
+      setLoadingHistory(true);
+      
+      try {
+        const userAddress = await ethersSigner.getAddress();
+        const vaultContract = new ethers.Contract(
+          vault.vault.address,
+          vault.vault.abi,
+          ethersSigner.provider
+        );
+        
+        // Get current block
+        const currentBlock = await ethersSigner.provider.getBlockNumber();
+        // Fetch events from last 10000 blocks (adjust as needed)
+        const fromBlock = Math.max(0, currentBlock - 10000);
+        
+        // Fetch all events
+        const depositFilter = vaultContract.filters.Deposit(userAddress);
+        const withdrawnFilter = vaultContract.filters.Withdrawn(userAddress);
+        const withdrawRequestedFilter = vaultContract.filters.WithdrawRequested(userAddress);
+        const withdrawRejectedFilter = vaultContract.filters.WithdrawRejectedZero(userAddress);
+        
+        const [depositEvents, withdrawnEvents, withdrawRequestedEvents, withdrawRejectedEvents] = await Promise.all([
+          vaultContract.queryFilter(depositFilter, fromBlock, currentBlock),
+          vaultContract.queryFilter(withdrawnFilter, fromBlock, currentBlock),
+          vaultContract.queryFilter(withdrawRequestedFilter, fromBlock, currentBlock),
+          vaultContract.queryFilter(withdrawRejectedFilter, fromBlock, currentBlock),
+        ]);
+        
+        const allTransactions: Transaction[] = [];
+        
+        // Process Deposit events
+        for (const event of depositEvents) {
+          if (!('args' in event)) continue;
+          const block = await event.getBlock();
+          allTransactions.push({
+            type: "Deposit",
+            amount: ethers.formatEther(event.args.amount || 0),
+            timestamp: block.timestamp,
+            txHash: event.transactionHash,
+            blockNumber: event.blockNumber,
+          });
+        }
+        
+        // Process Withdrawn events
+        for (const event of withdrawnEvents) {
+          if (!('args' in event)) continue;
+          const block = await event.getBlock();
+          allTransactions.push({
+            type: "Withdraw",
+            amount: ethers.formatUnits(event.args.amount || 0, 18),
+            timestamp: block.timestamp,
+            txHash: event.transactionHash,
+            to: event.args.to,
+            blockNumber: event.blockNumber,
+          });
+        }
+        
+        // Process WithdrawRequested events
+        for (const event of withdrawRequestedEvents) {
+          if (!('args' in event)) continue;
+          const block = await event.getBlock();
+          allTransactions.push({
+            type: "WithdrawRequested",
+            amount: "Pending...",
+            timestamp: block.timestamp,
+            txHash: event.transactionHash,
+            to: event.args.to,
+            blockNumber: event.blockNumber,
+          });
+        }
+        
+        // Process WithdrawRejected events
+        for (const event of withdrawRejectedEvents) {
+          if (!('args' in event)) continue;
+          const block = await event.getBlock();
+          allTransactions.push({
+            type: "WithdrawRejected",
+            amount: "0 (Rejected)",
+            timestamp: block.timestamp,
+            txHash: event.transactionHash,
+            to: event.args.to,
+            blockNumber: event.blockNumber,
+          });
+        }
+        
+        // Sort by timestamp descending (newest first)
+        allTransactions.sort((a, b) => b.timestamp - a.timestamp);
+        
+        setTransactions(allTransactions);
+      } catch (error) {
+        console.error("Failed to fetch transaction history:", error);
+        showToast("Failed to load transaction history", "error");
+      } finally {
+        setLoadingHistory(false);
+      }
+    };
+    
+    fetchTransactionHistory();
+    
+    // Refresh history when switching to history tab
+    if (activeTab === "history") {
+      fetchTransactionHistory();
+    }
+  }, [vault.vault.address, ethersSigner, vault.isDeployed, activeTab]);
+  
   // Show toast helper
   const showToast = (message: string, type: "success" | "error" | "info" | "warning" = "info") => {
     setToast({ message, type });
   };
+  
+  // Copy to clipboard helper
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      showToast("Address copied!", "success");
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      showToast("Failed to copy", "error");
+    }
+  };
+  
+  // Quick amount selector values
+  const quickAmounts = ["0.05", "0.1", "0.5", "1.0", "5.0"];
   
   // Deposit steps
   const depositSteps = ["Confirm transaction", "Processing deposit", "Updating balance"];
@@ -167,16 +559,16 @@ export const PrivateVaultDemo = () => {
 
   // Styles
   const buttonClass =
-    "inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-purple-600 to-blue-600 px-6 py-3 font-semibold text-white shadow-lg " +
-    "transition-all duration-200 hover:from-purple-700 hover:to-blue-700 hover:shadow-xl active:scale-95 " +
-    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:ring-offset-2 " +
+    "inline-flex items-center justify-center rounded-xl bg-yellow-500 px-6 py-3 font-semibold text-white shadow-lg " +
+    "transition-all duration-200 hover:bg-yellow-600 hover:shadow-xl active:scale-95 " +
+    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-yellow-400 focus-visible:ring-offset-2 " +
     "disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100";
 
   const cardClass =
     "bg-white rounded-2xl shadow-xl p-6 border border-gray-100 hover:shadow-2xl transition-shadow duration-200";
 
   const inputClass =
-    "w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all";
+    "w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent transition-all";
 
   const labelClass = "block text-sm font-semibold text-gray-700 mb-2";
 
@@ -203,56 +595,122 @@ export const PrivateVaultDemo = () => {
   }
 
   return (
-    <div className="w-full max-w-6xl mx-auto space-y-6 p-4">
+    <div className="w-full max-w-4xl mx-auto space-y-6 p-4">
       {/* Header */}
-      <div className="text-center mb-8">
-        <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent mb-2">
-          Chiper Protocol
+      <div className="bg-white rounded-lg shadow-lg border-2 border-gray-800 p-6 text-center">
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">
+          CHIPER PROTOCOL
         </h1>
-        <p className="text-gray-600">
-          Confidential Transfer with Fully Homomorphic Encryption
-        </p>
+        <div className="flex items-center justify-center gap-3 text-gray-600">
+          <span className="font-medium">Confidential Transfer</span>
+          <span>-</span>
+          <span className="text-sm">Powered by Zama FHEVM</span>
+        </div>
+      </div>
+
+      {/* Tab Navigation */}
+      <div className="bg-white rounded-lg shadow-md border border-gray-200 p-2 flex gap-2">
+        <button
+          onClick={() => setActiveTab("deposit")}
+          className={`flex-1 py-3 px-6 rounded-lg font-semibold transition-all ${
+            activeTab === "deposit"
+              ? "bg-yellow-500 text-white shadow-md"
+              : "text-gray-600 hover:bg-gray-100"
+          }`}
+        >
+          DEPOSIT
+        </button>
+        <button
+          onClick={() => setActiveTab("withdraw")}
+          className={`flex-1 py-3 px-6 rounded-lg font-semibold transition-all ${
+            activeTab === "withdraw"
+              ? "bg-yellow-500 text-white shadow-md"
+              : "text-gray-600 hover:bg-gray-100"
+          }`}
+        >
+          WITHDRAW
+        </button>
+        <button
+          onClick={() => setActiveTab("history")}
+          className={`flex-1 py-3 px-6 rounded-lg font-semibold transition-all ${
+            activeTab === "history"
+              ? "bg-yellow-500 text-white shadow-md"
+              : "text-gray-600 hover:bg-gray-100"
+          }`}
+        >
+          HISTORY
+        </button>
       </div>
 
       {/* Status Message */}
-      {vault.message && (
+      {vault.message && !vault.message.includes("deployment not found") && (
         <div
-          className={`${cardClass} ${
+          className={`bg-white rounded-lg shadow-md p-6 border ${
             vault.message.includes("failed") || vault.message.includes("error")
-              ? "border-red-300 bg-red-50"
-              : "border-green-300 bg-green-50"
+              ? "border-red-200 bg-red-50"
+              : vault.message.includes("oracle") || vault.message.includes("Waiting")
+              ? "border-gray-200 bg-gray-50"
+              : "border-gray-200 bg-gray-50"
           }`}
         >
-          <p
-            className={
-              vault.message.includes("failed") || vault.message.includes("error")
-                ? "text-red-700"
-                : "text-green-700"
-            }
-          >
-            {vault.message}
-          </p>
+          <div>
+            <p
+              className={
+                vault.message.includes("failed") || vault.message.includes("error")
+                  ? "text-red-700 font-semibold"
+                  : "text-gray-900 font-semibold"
+              }
+            >
+              {vault.message}
+            </p>
+            {(vault.message.includes("oracle") || vault.message.includes("Waiting")) && (
+              <div className="mt-3 text-sm text-gray-700">
+                <p className="mb-2">⏱️ <strong>Estimated time:</strong> 15-60 seconds</p>
+                <p className="mb-2">🔄 <strong>What's happening:</strong></p>
+                <ul className="list-disc list-inside ml-2 space-y-1 text-gray-600">
+                  <li>Oracle is decrypting your encrypted amount</li>
+                  <li>ETH will be sent once decryption completes</li>
+                  <li>Your balance has already been deducted</li>
+                </ul>
+                <p className="mt-3">
+                  <a 
+                    href={`https://sepolia.etherscan.io/address/${vault.vault.address}#events`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-yellow-500 hover:text-yellow-600 underline"
+                  >
+                    📊 Check withdrawal status on Etherscan →
+                  </a>
+                </p>
+              </div>
+            )}
+          </div>
         </div>
       )}
 
-      {/* Balance Card */}
-      <div className={cardClass}>
-        <h2 className="text-2xl font-bold text-gray-800 mb-4">
-          Your Private Balance
-        </h2>
-
-        {/* Decryption Progress */}
+      {/* Encrypted Vault Balance Display */}
+      <div className="bg-gray-50 rounded-lg border border-gray-200 p-6">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-10 h-10 rounded-full bg-yellow-500 flex items-center justify-center flex-shrink-0">
+            <span className="text-xl">🔒</span>
+          </div>
+          <div className="flex-1">
+            <h3 className="text-base font-bold text-gray-900">Encrypted Vault Balance</h3>
+            <p className="text-xs text-gray-600">Your balance is protected by FHE (Fully Homomorphic Encryption)</p>
+          </div>
+        </div>
+        
         {vault.isDecrypting && (
           <div className="mb-4">
-            <div className="flex justify-between text-sm text-gray-600 mb-2">
-              <span>Decrypting cached handles...</span>
-              <span>
+            <div className="flex justify-between text-xs text-gray-600 mb-2">
+              <span>🔓 Decrypting...</span>
+              <span className="font-semibold">
                 {vault.decryptProgress.done} / {vault.decryptProgress.total}
               </span>
             </div>
             <div className="w-full bg-gray-200 rounded-full h-2">
               <div
-                className="bg-gradient-to-r from-purple-600 to-blue-600 h-2 rounded-full transition-all duration-300"
+                className="bg-yellow-500 h-2 rounded-full transition-all duration-300"
                 style={{
                   width: `${
                     vault.decryptProgress.total > 0
@@ -266,191 +724,535 @@ export const PrivateVaultDemo = () => {
             </div>
           </div>
         )}
-
-        {/* Balance Display */}
-        <div className="bg-gradient-to-br from-purple-50 to-blue-50 rounded-xl p-6 mb-4">
-          {vault.isDecrypted && vault.clearBalance ? (
-            <div className="text-center">
-              <p className="text-sm text-gray-600 mb-1">Decrypted Balance</p>
-              <p className="text-5xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
-                {ethers.formatEther(BigInt(vault.clearBalance.clear))}
-              </p>
-              <p className="text-xs text-gray-500 mt-2">ETH</p>
+        
+        {vault.isDecrypted && vault.clearBalance ? (
+          <div className="bg-white rounded-lg p-4 border-2 border-gray-300">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs text-gray-600 mb-1">✓ Decrypted Successfully</p>
+                <p className="text-3xl font-bold text-gray-900">
+                  {ethers.formatEther(BigInt(vault.clearBalance.clear))} ETH
+                </p>
+              </div>
+              <div className="text-4xl">💰</div>
             </div>
-          ) : (
-            <div className="text-center">
-              <p className="text-sm text-gray-600 mb-2">
-                Balance is encrypted
-              </p>
-              <p className="text-2xl font-mono text-gray-400 truncate">
-                {vault.balanceHandle || "0x0..."}
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <div className="bg-white rounded-lg p-4 border border-gray-300">
+              <p className="text-xs text-gray-500 mb-2">🔐 Encrypted Balance Handle:</p>
+              <p className="text-xs font-mono text-gray-700 break-all bg-gray-50 p-2 rounded">
+                {vault.balanceHandle || "No balance handle yet"}
               </p>
             </div>
-          )}
-        </div>
-
-        {/* Decrypt Button */}
-        <button
-          className={buttonClass + " w-full"}
-          disabled={!vault.canDecrypt || vault.isDecrypting}
-          onClick={() => {
-            vault.decryptBalance();
-            showToast("Decrypting balance...", "info");
-          }}
-        >
-          {vault.isDecrypting ? (
-            <>
-              <LoadingSpinner size="sm" />
-              <span className="ml-2">Decrypting...</span>
-            </>
-          ) : "Decrypt Balance"}
-        </button>
+            
+            <div className="flex items-center justify-between bg-gray-50 border border-gray-200 rounded-lg p-3">
+              <div className="flex-1">
+                <p className="text-xs text-gray-700 font-medium">💡 To view your balance:</p>
+                <p className="text-xs text-gray-600 mt-1">Click the "Decrypt" button to decrypt your encrypted balance using your wallet</p>
+              </div>
+              <button
+                className="ml-3 px-4 py-2 rounded-lg bg-yellow-500 text-white font-semibold text-sm hover:bg-yellow-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                disabled={!vault.canDecrypt || vault.isDecrypting}
+                onClick={async () => {
+                  try {
+                    await vault.decryptBalance();
+                  } catch (e: any) {
+                    showToast(`Decrypt failed: ${getErrorMessage(e)}`, "error");
+                  }
+                }}
+              >
+                {vault.isDecrypting ? (
+                  <>
+                    <LoadingSpinner size="sm" />
+                    <span>Decrypting</span>
+                  </>
+                ) : (
+                  <>
+                    <span>🔓</span>
+                    <span>Decrypt</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Actions Grid */}
-      <div className="grid md:grid-cols-2 gap-6">
-        {/* Deposit Card */}
-        <div className={cardClass}>
-          <h2 className="text-xl font-bold text-gray-800 mb-4">Deposit</h2>
-          <div className="space-y-4">
-            <div>
-              <label className={labelClass}>Amount (ETH)</label>
+      {/* Tab Content */}
+      {activeTab === "deposit" && (
+        <div className="bg-white rounded-lg shadow-lg border border-gray-200 p-6 space-y-6">
+          {/* Section Header */}
+          <div className="border-b-2 border-gray-800 pb-3">
+            <h2 className="text-lg font-bold text-gray-900">DEPOSIT</h2>
+            <p className="text-sm text-gray-600 mt-1">
+              Deposit ETH to encrypted vault for private use
+            </p>
+          </div>
+
+          {/* FHE Vault Address */}
+          <div className="space-y-2">
+            <label className="block text-sm font-bold text-gray-900">
+              FHE VAULT ADDRESS
+            </label>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                readOnly
+                value={vault.vault.address || "0xC520A1c9B64511722f7733d9E07939539643A62"}
+                className="flex-1 px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg font-mono text-sm text-gray-700"
+              />
+              <button
+                onClick={() => copyToClipboard(vault.vault.address || "")}
+                className="px-4 py-3 bg-gray-100 hover:bg-gray-200 border border-gray-300 rounded-lg transition-colors"
+                title="Copy address"
+              >
+                {copied ? (
+                  <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                ) : (
+                  <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                  </svg>
+                )}
+              </button>
+            </div>
+          </div>
+
+          {/* Transfer Amount */}
+          <div className="space-y-2">
+            <label className="block text-sm font-bold text-gray-900">
+              TRANSFER AMOUNT
+            </label>
+            <div className="flex items-center gap-3">
+              <span className="text-sm font-medium text-gray-700 px-3 py-3 bg-gray-100 border border-gray-300 rounded-lg">
+                ETH
+              </span>
               <input
                 type="number"
-                className={inputClass}
-                placeholder="Enter amount to deposit"
+                step="0.001"
+                className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent"
+                placeholder="0.000000"
                 value={depositAmount}
                 onChange={(e) => setDepositAmount(e.target.value)}
                 disabled={vault.isProcessing}
               />
             </div>
-            {vault.isProcessing && depositProgress > 0 ? (
-              <div className="bg-purple-50 rounded-lg p-4">
-                <ProgressSteps steps={depositSteps} currentStep={depositProgress} />
+            <p className="text-sm text-gray-600">
+              Available Balance: {walletBalance} ETH
+            </p>
+          </div>
+
+          {/* Quick Amount Selector */}
+          <div className="space-y-2">
+            <label className="block text-sm font-bold text-gray-900">
+              QUICK AMOUNT SELECTOR
+            </label>
+            <div className="flex gap-2">
+              {quickAmounts.map((amount) => (
+                <button
+                  key={amount}
+                  onClick={() => setDepositAmount(amount)}
+                  disabled={vault.isProcessing}
+                  className="flex-1 py-2 px-3 border-2 border-gray-300 rounded-lg font-semibold text-gray-700 hover:border-yellow-400 hover:bg-yellow-50 hover:text-yellow-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {amount}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Deposit Progress */}
+          {vault.isProcessing && depositProgress > 0 && (
+            <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+              <ProgressSteps steps={depositSteps} currentStep={depositProgress} />
+            </div>
+          )}
+
+          {/* Generated Record Display */}
+          {depositReceipt && (
+            <div className="space-y-2">
+              <label className="block text-sm font-bold text-gray-900">
+                DEPOSIT RECEIPT
+              </label>
+              <div className="bg-gray-50 border border-gray-300 rounded-lg p-4 font-mono text-xs space-y-1">
+                <p><span className="text-gray-600">Amount:</span> {depositReceipt.amount} ETH</p>
+                <p><span className="text-gray-600">Time:</span> {depositReceipt.timestamp}</p>
+                <p className="truncate"><span className="text-gray-600">Tx Hash:</span> {depositReceipt.txHash}</p>
               </div>
-            ) : null}
-            <button
-              className={buttonClass + " w-full"}
-              disabled={
-                !depositAmount ||
-                parseFloat(depositAmount) <= 0 ||
-                vault.isProcessing
-              }
-              onClick={async () => {
-                try {
-                  setDepositProgress(0);
-                  showToast("Starting deposit...", "info");
-                  setDepositProgress(1);
+            </div>
+          )}
+
+          {/* Deposit Button */}
+          <button
+            className={buttonClass + " w-full py-4 text-lg"}
+            disabled={
+              !depositAmount ||
+              parseFloat(depositAmount) <= 0 ||
+              vault.isProcessing
+            }
+            onClick={async () => {
+              try {
+                setDepositProgress(0);
+                showToast("Starting deposit...", "info");
+                setDepositProgress(1);
+                
+                const amount = ethers.parseEther(depositAmount);
+                await vault.deposit(amount);
+                
+                setDepositProgress(2);
+                setTimeout(() => {
+                  setDepositProgress(3);
+                  showToast("Deposit successful! Balance updated.", "success");
                   
-                  const amount = ethers.parseEther(depositAmount);
-                  await vault.deposit(amount);
+                  // Save receipt
+                  setDepositReceipt({
+                    amount: depositAmount,
+                    timestamp: new Date().toLocaleString(),
+                    txHash: "Check Etherscan for details"
+                  });
                   
-                  setDepositProgress(2);
-                  setTimeout(() => {
-                    setDepositProgress(3);
-                    showToast("Deposit successful! Balance updated.", "success");
-                    setDepositAmount("");
-                    setTimeout(() => setDepositProgress(0), 1000);
-                  }, 500);
-                } catch (e: any) {
-                  console.error("Deposit error:", e);
-                  setDepositProgress(0);
+                  setDepositAmount("");
+                  setTimeout(() => setDepositProgress(0), 1000);
+                }, 500);
+              } catch (e: any) {
+                console.error("Deposit error:", e);
+                setDepositProgress(0);
+                
+                if (e?.code === "ACTION_REJECTED" || e?.code === 4001) {
+                  showToast("Transaction cancelled by user", "warning");
+                } else {
                   showToast(`Deposit failed: ${getErrorMessage(e)}`, "error");
                 }
-              }}
-            >
-              {vault.isProcessing ? (
-                <>
-                  <LoadingSpinner size="sm" />
-                  <span className="ml-2">Processing Deposit...</span>
-                </>
-              ) : "Deposit ETH"}
-            </button>
-            <p className="text-xs text-gray-500">
-              Your balance is encrypted and stored privately on-chain
+              }
+            }}
+          >
+            {vault.isProcessing ? (
+              <>
+                <LoadingSpinner size="sm" />
+                <span className="ml-2">PROCESSING...</span>
+              </>
+            ) : "DEPOSIT TO VAULT"}
+          </button>
+
+          <p className="text-xs text-gray-500 text-center">
+            Your balance is encrypted and stored privately on-chain
+          </p>
+        </div>
+      )}
+
+      {activeTab === "withdraw" && (
+        <div className="bg-white rounded-lg shadow-lg border border-gray-200 p-6 space-y-6">
+          {/* Section Header */}
+          <div className="border-b-2 border-gray-800 pb-3">
+            <h2 className="text-lg font-bold text-gray-900">WITHDRAW</h2>
+            <p className="text-sm text-gray-600 mt-1">
+              Decrypt your balance in the vault first to ensure that your balance is not empty in the vault
             </p>
           </div>
-        </div>
 
-        {/* Withdraw Card */}
-        <div className={cardClass}>
-          <h2 className="text-xl font-bold text-gray-800 mb-4">Withdraw</h2>
-          <div className="space-y-4">
-            <div>
-              <label className={labelClass}>Amount (ETH)</label>
+          {/* Balance Zero Warning */}
+          {vault.clearBalance && vault.clearBalance.clear === BigInt(0) && (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+              <p className="text-yellow-800 text-sm font-medium">
+                ⚠️ Balance is 0 - Cannot withdraw
+              </p>
+              <p className="text-yellow-700 text-xs mt-1">
+                Please deposit ETH first before withdrawing
+              </p>
+            </div>
+          )}
+
+          {/* Withdraw Amount */}
+          <div className="space-y-2">
+            <label className="block text-sm font-bold text-gray-900">
+              WITHDRAWAL AMOUNT
+            </label>
+            <div className="flex items-center gap-3">
+              <span className="text-sm font-medium text-gray-700 px-3 py-3 bg-gray-100 border border-gray-300 rounded-lg">
+                ETH
+              </span>
               <input
                 type="number"
-                className={inputClass}
-                placeholder="Enter amount to withdraw"
+                step="0.001"
+                className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent"
+                placeholder="0.000000"
                 value={withdrawAmount}
                 onChange={(e) => setWithdrawAmount(e.target.value)}
-                disabled={vault.isProcessing}
+                disabled={vault.isProcessing || (vault.clearBalance?.clear === BigInt(0))}
               />
             </div>
-            <div>
-              <label className={labelClass}>To Address</label>
-              <input
-                type="text"
-                className={inputClass}
-                placeholder="0x..."
-                value={withdrawTo}
-                onChange={(e) => setWithdrawTo(e.target.value)}
-                disabled={vault.isProcessing}
-              />
+            {vault.clearBalance && vault.clearBalance.clear !== BigInt(0) && (
+              <p className="text-sm text-gray-600">
+                Available: {ethers.formatEther(vault.clearBalance.clear.toString())} ETH
+              </p>
+            )}
+          </div>
+
+          {/* To Address */}
+          <div className="space-y-2">
+            <label className="block text-sm font-bold text-gray-900">
+              TO ADDRESS
+            </label>
+            <input
+              type="text"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg font-mono text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent"
+              placeholder="0x..."
+              value={withdrawTo}
+              onChange={(e) => setWithdrawTo(e.target.value)}
+              disabled={vault.isProcessing || (vault.clearBalance?.clear === BigInt(0))}
+            />
+          </div>
+
+          {/* Withdraw Progress */}
+          {vault.isProcessing && withdrawProgress > 0 && (
+            <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+              <ProgressSteps steps={withdrawSteps} currentStep={withdrawProgress} />
             </div>
-            {vault.isProcessing && withdrawProgress > 0 ? (
-              <div className="bg-blue-50 rounded-lg p-4">
-                <ProgressSteps steps={withdrawSteps} currentStep={withdrawProgress} />
-              </div>
-            ) : null}
-            <button
-              className={buttonClass + " w-full"}
-              disabled={
-                !withdrawAmount ||
-                !withdrawTo ||
-                parseFloat(withdrawAmount) <= 0 ||
-                vault.isProcessing ||
-                !fhevmInstance
-              }
-              onClick={async () => {
-                try {
-                  setWithdrawProgress(1);
-                  showToast("Encrypting withdrawal amount...", "info");
-                  
-                  const amount = ethers.parseEther(withdrawAmount);
-                  setWithdrawProgress(2);
-                  
-                  await vault.withdraw(withdrawTo, amount);
-                  
-                  setWithdrawProgress(3);
-                  showToast("Withdrawal requested! Oracle is processing...", "warning");
-                  
-                  // Note: Step 4 will be set when oracle completes (via event listener)
-                  setWithdrawAmount("");
-                  setWithdrawTo("");
-                  
-                  // Reset after some time
-                  setTimeout(() => setWithdrawProgress(0), 10000);
-                } catch (e: any) {
-                  console.error("Withdrawal error:", e);
-                  setWithdrawProgress(0);
+          )}
+
+          {/* Withdraw Button */}
+          <button
+            className={buttonClass + " w-full py-4 text-lg"}
+            disabled={
+              !withdrawAmount ||
+              !withdrawTo ||
+              parseFloat(withdrawAmount) <= 0 ||
+              vault.isProcessing ||
+              (vault.clearBalance?.clear === BigInt(0)) ||
+              !fhevmInstance
+            }
+            onClick={async () => {
+              try {
+                const amount = ethers.parseEther(withdrawAmount);
+                
+                // Validate amount
+                if (vault.clearBalance && typeof vault.clearBalance.clear === 'bigint') {
+                  if (amount > vault.clearBalance.clear) {
+                    showToast(`Amount exceeds balance! Available: ${ethers.formatEther(vault.clearBalance.clear)} ETH`, "error");
+                    return;
+                  }
+                }
+                
+                // Validate fhevmInstance and contract
+                if (!fhevmInstance || !vault.vault.address || !ethersSigner) {
+                  showToast("FHEVM instance or vault not ready", "error");
+                  return;
+                }
+                
+                // Show modal and start step 0 (Encrypting)
+                setShowWithdrawModal(true);
+                setWithdrawModalStep(0);
+                
+                // Step 0: Create encrypted input (real encryption process)
+                const userAddress = await ethersSigner.getAddress();
+                const input = fhevmInstance.createEncryptedInput(vault.vault.address, userAddress);
+                if (!input) {
+                  throw new Error("Failed to create encrypted input");
+                }
+                
+                input.add128(amount);
+                const encryptedInput = await input.encrypt();
+                
+                // Step 1: Submitting request (after encryption done)
+                setWithdrawModalStep(1);
+                
+                // Submit transaction to blockchain
+                const vaultContract = new ethers.Contract(
+                  vault.vault.address,
+                  vault.vault.abi,
+                  ethersSigner
+                );
+                
+                const tx = await vaultContract.requestWithdraw(
+                  withdrawTo,
+                  encryptedInput.handles[0],
+                  encryptedInput.inputProof
+                );
+                
+                // Wait for transaction confirmation
+                await tx.wait();
+                
+                // Step 2: Oracle processing (after tx confirmed)
+                setWithdrawModalStep(2);
+                
+                showToast("Withdrawal request confirmed! Oracle is now processing.", "success");
+                
+                setWithdrawAmount("");
+                setWithdrawTo("");
+                
+                // Refresh balance after tx confirmed
+                setTimeout(() => {
+                  vault.refreshBalanceHandle();
+                }, 2000);
+                
+                // Keep modal open at oracle step (step 2)
+                // User can close it manually, or it will auto-close when withdrawal completes
+              } catch (e: any) {
+                console.error("Withdrawal error:", e);
+                setShowWithdrawModal(false);
+                setWithdrawModalStep(0);
+                
+                if (e?.code === "ACTION_REJECTED" || e?.code === 4001) {
+                  showToast("Transaction cancelled by user", "warning");
+                } else {
                   showToast(`Withdrawal failed: ${getErrorMessage(e)}`, "error");
                 }
-              }}
-            >
-              {vault.isProcessing ? (
-                <>
-                  <LoadingSpinner size="sm" />
-                  <span className="ml-2">Processing Withdrawal...</span>
-                </>
-              ) : "Withdraw (Encrypted)"}
-            </button>
-            <p className="text-xs text-gray-500">
-              Withdrawal requests are processed by the oracle with public decryption
+              }
+            }}
+          >
+            {vault.isProcessing ? (
+              <>
+                <LoadingSpinner size="sm" />
+                <span className="ml-2">PROCESSING...</span>
+              </>
+            ) : "WITHDRAW FROM VAULT"}
+          </button>
+
+          <p className="text-xs text-gray-500 text-center">
+            Withdrawal requests are processed by the oracle with public decryption (Est. 15-60 seconds)
+          </p>
+        </div>
+      )}
+
+      {activeTab === "history" && (
+        <div className="bg-white rounded-lg shadow-lg border border-gray-200 p-6 space-y-6">
+          {/* Section Header */}
+          <div className="border-b-2 border-gray-800 pb-3">
+            <h2 className="text-lg font-bold text-gray-900">TRANSACTION HISTORY</h2>
+            <p className="text-sm text-gray-600 mt-1">
+              View your deposit and withdrawal history
             </p>
           </div>
+
+          {/* History Content */}
+          <div className="space-y-4">
+            {loadingHistory ? (
+              <div className="text-center py-12">
+                <LoadingSpinner size="lg" />
+                <p className="text-gray-500 mt-4">Loading transaction history...</p>
+              </div>
+            ) : transactions.length === 0 ? (
+              <>
+                <div className="text-center py-12">
+                  <svg className="w-16 h-16 mx-auto text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  <p className="text-gray-500 font-medium">No transaction history yet</p>
+                  <p className="text-gray-400 text-sm mt-1">Your deposits and withdrawals will appear here</p>
+                </div>
+                
+                {/* Debug Info Link */}
+                <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                  <p className="text-gray-700 text-sm font-medium mb-2">
+                    View on Blockchain Explorer
+                  </p>
+                  <a 
+                    href={`https://sepolia.etherscan.io/address/${vault.vault.address}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-yellow-500 hover:text-yellow-600 underline text-sm"
+                  >
+                    Check contract events on Etherscan →
+                  </a>
+                </div>
+              </>
+            ) : (
+              <>
+                {/* Transaction List */}
+                <div className="space-y-3">
+                  {transactions.map((tx, index) => {
+                    const typeColors = {
+                      "Deposit": "bg-white border-gray-200 hover:border-gray-300",
+                      "Withdraw": "bg-white border-gray-200 hover:border-gray-300",
+                      "WithdrawRequested": "bg-white border-gray-200 hover:border-gray-300",
+                      "WithdrawRejected": "bg-white border-gray-200 hover:border-gray-300",
+                    };
+                    
+                    const typeIcons = {
+                      "Deposit": "↓",
+                      "Withdraw": "↑",
+                      "WithdrawRequested": "⏳",
+                      "WithdrawRejected": "✕",
+                    };
+                    
+                    const typeTextColors = {
+                      "Deposit": "text-gray-900",
+                      "Withdraw": "text-gray-900",
+                      "WithdrawRequested": "text-gray-900",
+                      "WithdrawRejected": "text-gray-900",
+                    };
+                    
+                    return (
+                      <div key={index} className={`border rounded-lg p-4 transition-all ${typeColors[tx.type]}`}>
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-2">
+                              <span className="text-2xl">{typeIcons[tx.type]}</span>
+                              <span className={`font-bold text-sm ${typeTextColors[tx.type]}`}>
+                                {tx.type === "WithdrawRequested" ? "Waiting for Oracle Decryption" : 
+                                 tx.type === "WithdrawRejected" ? "Withdraw Rejected" : tx.type}
+                              </span>
+                            </div>
+                            <div className="space-y-1 text-xs text-gray-600">
+                              <p>
+                                <span className="font-semibold">Amount:</span> {tx.amount} ETH
+                              </p>
+                              {tx.to && (
+                                <p>
+                                  <span className="font-semibold">To:</span>{" "}
+                                  <span className="font-mono">{tx.to.slice(0, 6)}...{tx.to.slice(-4)}</span>
+                                </p>
+                              )}
+                              <p>
+                                <span className="font-semibold">Time:</span>{" "}
+                                {new Date(tx.timestamp * 1000).toLocaleString()}
+                              </p>
+                              <p>
+                                <span className="font-semibold">Block:</span> {tx.blockNumber}
+                              </p>
+                              
+                              {/* Extra info for WithdrawRequested */}
+                              {tx.type === "WithdrawRequested" && (
+                                <div className="mt-2 pt-2 border-t border-gray-200">
+                                  <p className="text-gray-700 font-medium text-xs">
+                                    🔐 <strong>Processing:</strong> Zama oracle is using FHE to decrypt your encrypted withdrawal amount (15-60 sec)
+                                  </p>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          <a
+                            href={`https://sepolia.etherscan.io/tx/${tx.txHash}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs px-3 py-1.5 bg-gray-50 rounded-md hover:bg-gray-100 transition-colors border border-gray-200 text-gray-700 font-medium"
+                          >
+                            View →
+                          </a>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                
+                {/* Explorer Link */}
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
+                  <a 
+                    href={`https://sepolia.etherscan.io/address/${vault.vault.address}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:text-blue-800 underline text-sm"
+                  >
+                    View all events on Etherscan →
+                  </a>
+                </div>
+              </>
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Debug Info */}
       <details className="bg-gray-50 rounded-lg p-4">
@@ -475,11 +1277,21 @@ export const PrivateVaultDemo = () => {
           {fhevmError && (
             <p className="text-red-600">
               <span className="font-semibold">FHEVM Error:</span>{" "}
-              {fhevmError.message}
+              {getErrorMessage(fhevmError)}
             </p>
           )}
         </div>
       </details>
+      
+      {/* Withdrawal Progress Modal */}
+      <WithdrawalProgressModal
+        isOpen={showWithdrawModal}
+        currentStep={withdrawModalStep}
+        onClose={() => {
+          setShowWithdrawModal(false);
+          setWithdrawModalStep(0);
+        }}
+      />
       
       {/* Toast Notification */}
       {toast && (
