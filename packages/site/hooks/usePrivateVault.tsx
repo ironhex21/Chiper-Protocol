@@ -25,6 +25,37 @@ export type ClearValueType = {
   clear: string | bigint | boolean;
 };
 
+// Safe error message extractor
+const getErrorMessage = (error: any): string => {
+  if (typeof error === 'string') return error;
+  
+  // Handle ethers.js CALL_EXCEPTION
+  if (error?.code === 'CALL_EXCEPTION') {
+    if (error?.reason) return error.reason;
+    if (error?.message?.includes('missing revert data')) {
+      return 'Contract call failed (missing revert data). This may be an ACL permission issue or network problem. Try refreshing.';
+    }
+    return 'Contract call failed. Please try again.';
+  }
+  
+  // Handle user rejection
+  if (error?.code === 'ACTION_REJECTED' || error?.code === 4001) {
+    return 'Transaction rejected by user';
+  }
+  
+  // Standard error extraction
+  if (error?.message) return error.message;
+  if (error?.reason) return error.reason;
+  if (error?.data?.message) return error.data.message;
+  if (error?.error?.message) return error.error.message;
+  
+  try {
+    return JSON.stringify(error);
+  } catch {
+    return 'Unknown error occurred';
+  }
+};
+
 type PrivateVaultInfoType = {
   abi: typeof PrivateVaultABI.abi;
   address?: `0x${string}`;
@@ -166,7 +197,19 @@ export const usePrivateVault = (parameters: {
         setIsRefreshing(false);
       })
       .catch((e: any) => {
-        setMessage("PrivateVault.myBalance() failed: " + e.message);
+        console.error("[usePrivateVault] myBalance() error:", e);
+        
+        // Handle specific errors more gracefully
+        if (e?.code === 'CALL_EXCEPTION' && e?.message?.includes('missing revert data')) {
+          console.warn("[usePrivateVault] ACL permission issue detected, will retry on next refresh");
+          // Don't show error for ACL issues, will retry automatically
+          setBalanceHandle(undefined);
+          setMessage(""); // Clear any previous errors
+        } else {
+          // Show error for other types of failures
+          setMessage("Failed to fetch balance: " + getErrorMessage(e));
+        }
+        
         isRefreshingRef.current = false;
         setIsRefreshing(false);
       });
@@ -277,7 +320,7 @@ export const usePrivateVault = (parameters: {
       setIsDecrypting(false);
     } catch (e: any) {
       console.error("[usePrivateVault] decrypt error:", e);
-      setMessage("Decrypt failed: " + e.message);
+      setMessage("Decrypt failed: " + getErrorMessage(e));
       isDecryptingRef.current = false;
       setIsDecrypting(false);
     }
@@ -316,11 +359,11 @@ export const usePrivateVault = (parameters: {
         const tx = await vaultContract.depositETH({ value: amount });
         await tx.wait();
 
-        setMessage("Deposit successful!");
+        setMessage("✅ Deposit successful! Balance encrypted on-chain.");
         refreshBalanceHandle();
       } catch (e: any) {
         console.error("[usePrivateVault] deposit error:", e);
-        setMessage("Deposit failed: " + e.message);
+        setMessage("❌ Deposit failed: " + getErrorMessage(e));
       } finally {
         isProcessingRef.current = false;
         setIsProcessing(false);
@@ -368,7 +411,7 @@ export const usePrivateVault = (parameters: {
         const receipt = await tx.wait();
 
         setMessage(
-          "Withdrawal requested! Waiting for oracle to process decryption..."
+          "✅ Withdrawal requested! Waiting for oracle to decrypt and send ETH (5-10 min)..."
         );
         console.log("[usePrivateVault] withdraw receipt:", receipt);
 
@@ -378,7 +421,7 @@ export const usePrivateVault = (parameters: {
         }, 2000);
       } catch (e: any) {
         console.error("[usePrivateVault] withdraw error:", e);
-        setMessage("Withdraw failed: " + e.message);
+        setMessage("❌ Withdraw failed: " + getErrorMessage(e));
       } finally {
         isProcessingRef.current = false;
         setIsProcessing(false);
