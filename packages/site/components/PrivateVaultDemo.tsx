@@ -2,7 +2,7 @@
 
 import { useFhevm } from "@fhevm/react";
 import { useInMemoryStorage } from "../hooks/useInMemoryStorage";
-import { useMetaMaskEthersSigner } from "../hooks/metamask/useMetaMaskEthersSigner";
+import { useWalletEthersSigner } from "../hooks/wallet/useWalletEthersSigner";
 import { usePrivateVault } from "../hooks/usePrivateVault";
 import { errorNotDeployed } from "./ErrorNotDeployed";
 import { useState, useEffect } from "react";
@@ -289,15 +289,13 @@ export const PrivateVaultDemo = () => {
   const {
     provider,
     chainId,
-    accounts,
     isConnected,
-    connect,
     ethersSigner,
     ethersReadonlyProvider,
     sameChain,
     sameSigner,
     initialMockChains,
-  } = useMetaMaskEthersSigner();
+  } = useWalletEthersSigner();
 
   const {
     instance: fhevmInstance,
@@ -580,64 +578,19 @@ export const PrivateVaultDemo = () => {
   const cardClass =
     "bg-white rounded-xl shadow-lg p-4 border border-gray-100 hover:shadow-xl transition-shadow duration-200";
 
-  if (!isConnected) {
-    return (
-      <div className="flex items-center justify-center min-h-[300px]">
-        <div className={cardClass + " text-center"}>
-          <h2 className="text-2xl font-bold text-gray-800 mb-3">
-            Confidential Transfer
-          </h2>
-          <p className="text-sm text-gray-600 mb-4">
-            Connect your wallet to access your encrypted balance
-          </p>
-          <button className={buttonClass} onClick={connect}>
-            <span className="text-base">Connect to MetaMask</span>
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  if (vault.isDeployed === false) {
-    return errorNotDeployed(chainId);
-  }
-
   return (
     <div className="w-full max-w-3xl mx-auto space-y-4 p-3">
       {/* Header */}
       <div className="bg-white rounded-lg shadow-lg border-2 border-gray-800 p-4">
-        <div className="flex items-start justify-between mb-2">
-          <div className="flex-1 text-center">
-            <h1 className="text-2xl font-bold text-gray-900 mb-1.5">
-              CHIPER PROTOCOL
-            </h1>
-            <div className="flex items-center justify-center gap-2 text-gray-600">
-              <span className="text-sm font-medium">Confidential Transfer</span>
-              <span>-</span>
-              <span className="text-xs">Powered by Zama FHEVM</span>
-            </div>
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-gray-900 mb-1.5">
+            CHIPER PROTOCOL
+          </h1>
+          <div className="flex items-center justify-center gap-2 text-gray-600">
+            <span className="text-sm font-medium">Confidential Transfer</span>
+            <span>-</span>
+            <span className="text-xs">Powered by Zama FHEVM</span>
           </div>
-          
-          {/* Wallet Info & Disconnect */}
-          {accounts && accounts.length > 0 && (
-            <div className="flex items-center gap-2 ml-4">
-              <div className="bg-gray-100 px-3 py-1.5 rounded-lg border border-gray-300">
-                <p className="text-xs font-mono text-gray-700">
-                  {accounts[0].slice(0, 6)}...{accounts[0].slice(-4)}
-                </p>
-              </div>
-              <button
-                onClick={() => {
-                  // Disconnect by reloading page (MetaMask doesn't have programmatic disconnect)
-                  window.location.reload();
-                }}
-                className="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 text-xs font-semibold rounded-lg border border-red-200 transition-colors"
-                title="Disconnect Wallet"
-              >
-                Disconnect
-              </button>
-            </div>
-          )}
         </div>
       </div>
 
@@ -786,7 +739,8 @@ export const PrivateVaultDemo = () => {
               </div>
               <button
                 className="ml-3 px-4 py-2 rounded-lg bg-yellow-500 text-white font-semibold text-sm hover:bg-yellow-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                disabled={!vault.canDecrypt || vault.isDecrypting}
+                disabled={!isConnected || !vault.isDeployed || !vault.canDecrypt || vault.isDecrypting}
+                title={!isConnected ? "Please connect wallet first" : !vault.isDeployed ? "Contract not deployed" : ""}
                 onClick={async () => {
                   try {
                     await vault.decryptBalance();
@@ -822,6 +776,24 @@ export const PrivateVaultDemo = () => {
               Deposit ETH to encrypted vault for private use
             </p>
           </div>
+
+          {/* Wallet Connection Warning */}
+          {!isConnected && (
+            <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-r-lg">
+              <div className="flex items-center">
+                <div className="flex-shrink-0">
+                  <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <div className="ml-3">
+                  <p className="text-sm text-yellow-800 font-medium">
+                    Please connect your wallet to make transactions
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* FHE Vault Address */}
           <div className="space-y-2">
@@ -921,10 +893,13 @@ export const PrivateVaultDemo = () => {
           <button
             className={buttonClass + " w-full py-4 text-lg"}
             disabled={
+              !isConnected ||
+              !vault.isDeployed ||
               !depositAmount ||
               parseFloat(depositAmount) <= 0 ||
               vault.isProcessing
             }
+            title={!isConnected ? "Please connect wallet first" : !vault.isDeployed ? "Contract not deployed" : ""}
             onClick={async () => {
               try {
                 setDepositProgress(0);
@@ -986,6 +961,24 @@ export const PrivateVaultDemo = () => {
             </p>
           </div>
 
+          {/* Wallet Connection Warning */}
+          {!isConnected && (
+            <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-r-lg">
+              <div className="flex items-center">
+                <div className="flex-shrink-0">
+                  <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <div className="ml-3">
+                  <p className="text-sm text-yellow-800 font-medium">
+                    Please connect your wallet to make transactions
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Balance Zero Warning */}
           {vault.clearBalance && vault.clearBalance.clear === BigInt(0) && (
             <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
@@ -1043,6 +1036,8 @@ export const PrivateVaultDemo = () => {
           <button
             className={buttonClass + " w-full py-4 text-lg"}
             disabled={
+              !isConnected ||
+              !vault.isDeployed ||
               !withdrawAmount ||
               !withdrawTo ||
               parseFloat(withdrawAmount) <= 0 ||
@@ -1050,6 +1045,7 @@ export const PrivateVaultDemo = () => {
               (vault.clearBalance?.clear === BigInt(0)) ||
               !fhevmInstance
             }
+            title={!isConnected ? "Please connect wallet first" : !vault.isDeployed ? "Contract not deployed" : ""}
             onClick={async () => {
               try {
                 const amount = ethers.parseEther(withdrawAmount);

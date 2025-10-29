@@ -2,7 +2,7 @@
 
 import { useFhevm } from "@fhevm/react";
 import { useInMemoryStorage } from "../hooks/useInMemoryStorage";
-import { useMetaMaskEthersSigner } from "../hooks/metamask/useMetaMaskEthersSigner";
+import { useWalletEthersSigner } from "../hooks/wallet/useWalletEthersSigner";
 import { useFHECounter } from "../hooks/useFHECounter";
 import { errorNotDeployed } from "./ErrorNotDeployed";
 
@@ -17,15 +17,13 @@ export const FHECounterDemo = () => {
   const {
     provider,
     chainId,
-    accounts,
     isConnected,
-    connect,
     ethersSigner,
     ethersReadonlyProvider,
     sameChain,
     sameSigner,
     initialMockChains,
-  } = useMetaMaskEthersSigner();
+  } = useWalletEthersSigner();
 
   //////////////////////////////////////////////////////////////////////////////
   // FHEVM instance
@@ -78,24 +76,6 @@ export const FHECounterDemo = () => {
 
   const titleClass = "font-semibold text-black text-lg mt-4";
 
-  if (!isConnected) {
-    return (
-      <div className="mx-auto">
-        <button
-          className={buttonClass}
-          disabled={isConnected}
-          onClick={connect}
-        >
-          <span className="text-4xl p-6">Connect to MetaMask</span>
-        </button>
-      </div>
-    );
-  }
-
-  if (fheCounter.isDeployed === false) {
-    return errorNotDeployed(chainId);
-  }
-
   return (
     <div className="grid w-full gap-4">
       <div className="col-span-full mx-20 bg-black text-white">
@@ -106,20 +86,30 @@ export const FHECounterDemo = () => {
           </span>
         </p>
       </div>
+      {!isConnected && (
+        <div className="col-span-full mx-20">
+          <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-r-lg">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <p className="text-sm text-yellow-800 font-medium">
+                  Please connect your wallet to interact with the counter
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       <div className="col-span-full mx-20 mt-4 px-5 pb-4 rounded-lg bg-white border-2 border-black">
         <p className={titleClass}>Chain Infos</p>
         {printProperty("ChainId", chainId)}
         {printProperty(
-          "Metamask accounts",
-          accounts
-            ? accounts.length === 0
-              ? "No accounts"
-              : `{ length: ${accounts.length}, [${accounts[0]}, ...] }`
-            : "undefined"
-        )}
-        {printProperty(
-          "Signer",
-          ethersSigner ? ethersSigner.address : "No signer"
+          "Wallet Address",
+          ethersSigner ? ethersSigner.address : "Not connected"
         )}
 
         <p className={titleClass}>Contract</p>
@@ -159,7 +149,8 @@ export const FHECounterDemo = () => {
       <div className="grid grid-cols-2 mx-20 gap-4">
         <button
           className={buttonClass}
-          disabled={!fheCounter.canDecrypt}
+          disabled={!isConnected || !fheCounter.isDeployed || !fheCounter.canDecrypt}
+          title={!isConnected ? "Please connect wallet first" : !fheCounter.isDeployed ? "Contract not deployed" : ""}
           onClick={fheCounter.decryptCountHandle}
         >
           {fheCounter.canDecrypt
@@ -172,7 +163,8 @@ export const FHECounterDemo = () => {
         </button>
         <button
           className={buttonClass}
-          disabled={!fheCounter.canGetCount}
+          disabled={!isConnected || !fheCounter.isDeployed || !fheCounter.canGetCount}
+          title={!isConnected ? "Please connect wallet first" : !fheCounter.isDeployed ? "Contract not deployed" : ""}
           onClick={fheCounter.refreshCountHandle}
         >
           {fheCounter.canGetCount
@@ -183,7 +175,8 @@ export const FHECounterDemo = () => {
       <div className="grid grid-cols-2 mx-20 gap-4">
         <button
           className={buttonClass}
-          disabled={!fheCounter.canIncOrDec}
+          disabled={!isConnected || !fheCounter.isDeployed || !fheCounter.canIncOrDec}
+          title={!isConnected ? "Please connect wallet first" : !fheCounter.isDeployed ? "Contract not deployed" : ""}
           onClick={() => fheCounter.incOrDec(+1)}
         >
           {fheCounter.canIncOrDec
@@ -194,7 +187,8 @@ export const FHECounterDemo = () => {
         </button>
         <button
           className={buttonClass}
-          disabled={!fheCounter.canIncOrDec}
+          disabled={!isConnected || !fheCounter.isDeployed || !fheCounter.canIncOrDec}
+          title={!isConnected ? "Please connect wallet first" : !fheCounter.isDeployed ? "Contract not deployed" : ""}
           onClick={() => fheCounter.incOrDec(-1)}
         >
           {fheCounter.canIncOrDec

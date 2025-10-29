@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { Providers } from "./providers";
+import { Navbar } from "@/components/Navbar";
 
 export const metadata: Metadata = {
   title: "Chiper Protocol - Confidential Transfer",
@@ -73,12 +74,10 @@ export default async function RootLayout({
       <body className={`bg-white text-foreground antialiased`}>
         <div className="fixed inset-0 w-full h-full bg-white z-[-20] min-w-[850px]"></div>
         <main className="flex flex-col max-w-screen-lg mx-auto pb-20 min-w-[850px]">
-          <nav className="flex w-full px-3 md:px-0 h-fit py-10 justify-between items-center">
-            <div className="text-2xl font-black text-gray-900 uppercase tracking-tight">
-              CHIPER PROTOCOL
-            </div>
-          </nav>
-          <Providers>{children}</Providers>
+          <Providers>
+            <Navbar />
+            {children}
+          </Providers>
         </main>
       </body>
     </html>

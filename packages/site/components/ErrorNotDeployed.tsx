@@ -1,5 +1,18 @@
-export function errorNotDeployed(chainId: number | undefined) {
+export function errorNotDeployed(chainId: number | undefined, isConnected: boolean) {
   const isSupported = chainId === 11155111; // Only Sepolia supported
+
+  // Don't show error if user is not connected
+  if (!isConnected) {
+    return (
+      <div className="flex items-center justify-center min-h-[300px] p-6">
+        <div className="max-w-md w-full text-center">
+          <p className="text-gray-600 text-lg">
+            Connect your wallet to get started
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex items-center justify-center min-h-screen p-6">
