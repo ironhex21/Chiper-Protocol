@@ -2,6 +2,16 @@
 
 Chiper Protocol is Confidential Transfer protocol with Fully Homomorphic Encryption. Keep your balance private while maintaining full on-chain verifiability powered by Zama FHEVM.
 
+---
+
+### 📝 **Smart Contract (Sepolia Testnet)**
+# **[0x4d203c455E9D502C9a384361dAE30AE3d325953f](https://sepolia.etherscan.io/address/0x4d203c455E9D502C9a384361dAE30AE3d325953f)** ✅ Verified
+
+### 🌐 **Website Demo**
+# **[https://chiperprotocol.vercel.app/](https://chiperprotocol.vercel.app/)**
+
+---
+
 ## 🔐 Features
 
 - **🔒 Encrypted Balance**: Balance stored encrypted on-chain using FHEVM (euint128)
@@ -103,16 +113,6 @@ npm run dev:mock
    iv. Enter your Hardhat Network chain ID, 31337 (or 0x539 in hexadecimal format).
 
 ## Run on Sepolia
-
-### Live Deployment
-
-**Contract Address (Sepolia):**
-```
-0x4d203c455E9D502C9a384361dAE30AE3d325953f
-```
-
-**Verify on Etherscan:**
-https://sepolia.etherscan.io/address/0x4d203c455E9D502C9a384361dAE30AE3d325953f
 
 ### Deploy Your Own
 
