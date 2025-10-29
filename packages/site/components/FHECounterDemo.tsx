@@ -4,7 +4,6 @@ import { useFhevm } from "@fhevm/react";
 import { useInMemoryStorage } from "../hooks/useInMemoryStorage";
 import { useWalletEthersSigner } from "../hooks/wallet/useWalletEthersSigner";
 import { useFHECounter } from "../hooks/useFHECounter";
-import { errorNotDeployed } from "./ErrorNotDeployed";
 
 /*
  * Main FHECounter React component with 3 buttons

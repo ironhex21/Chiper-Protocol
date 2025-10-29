@@ -4,7 +4,6 @@ import { useFhevm } from "@fhevm/react";
 import { useInMemoryStorage } from "../hooks/useInMemoryStorage";
 import { useWalletEthersSigner } from "../hooks/wallet/useWalletEthersSigner";
 import { usePrivateVault } from "../hooks/usePrivateVault";
-import { errorNotDeployed } from "./ErrorNotDeployed";
 import { useState, useEffect } from "react";
 import { ethers } from "ethers";
 
@@ -574,9 +573,6 @@ export const PrivateVaultDemo = () => {
     "transition-all duration-200 hover:bg-yellow-600 hover:shadow-lg active:scale-95 " +
     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-yellow-400 focus-visible:ring-offset-2 " +
     "disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100";
-
-  const cardClass =
-    "bg-white rounded-xl shadow-lg p-4 border border-gray-100 hover:shadow-xl transition-shadow duration-200";
 
   return (
     <div className="w-full max-w-3xl mx-auto space-y-4 p-3">
