@@ -1,9 +1,9 @@
 import { run } from "hardhat";
 
 async function main() {
-  const contractAddress = "0x4d203c455E9D502C9a384361dAE30AE3d325953f";
+  const contractAddress = "0xA40f7F77497d4519285cfcC30A7876d74FB80f03"; // ChiperProtocol deployment Nov 4, 2025
   
-  console.log("🔍 Verifying PrivateVault contract on Etherscan...");
+  console.log("🔍 Verifying ChiperProtocol contract on Etherscan...");
   console.log("📍 Address:", contractAddress);
   console.log("🌐 Network: Sepolia Testnet");
   console.log("");
@@ -11,8 +11,8 @@ async function main() {
   try {
     await run("verify:verify", {
       address: contractAddress,
-      constructorArguments: [], // PrivateVault has no constructor arguments
-      contract: "contracts/PrivateVault.sol:PrivateVault",
+      constructorArguments: [], // ChiperProtocol has no constructor arguments
+      contract: "contracts/PrivateVault.sol:ChiperProtocol",
     });
     
     console.log("");
