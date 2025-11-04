@@ -344,7 +344,7 @@ export const PrivateVaultDemo = () => {
   
   // Transaction history from blockchain
   type Transaction = {
-    type: "Deposit" | "Withdraw" | "WithdrawRequested" | "WithdrawRejected";
+    type: "Deposit" | "Withdraw" | "WithdrawalRequested" | "WithdrawalRejected" | "WithdrawalCancelled";
     amount: string;
     timestamp: number;
     txHash: string;
@@ -456,14 +456,16 @@ export const PrivateVaultDemo = () => {
         // Fetch all events
         const depositFilter = vaultContract.filters.Deposit(userAddress);
         const withdrawnFilter = vaultContract.filters.Withdrawn(userAddress);
-        const withdrawRequestedFilter = vaultContract.filters.WithdrawRequested(userAddress);
-        const withdrawRejectedFilter = vaultContract.filters.WithdrawRejectedZero(userAddress);
+        const withdrawalRequestedFilter = vaultContract.filters.WithdrawalRequested(userAddress);
+        const withdrawalRejectedFilter = vaultContract.filters.WithdrawalRejectedZero(userAddress);
+        const withdrawalCancelledFilter = vaultContract.filters.WithdrawalCancelled(userAddress);
         
-        const [depositEvents, withdrawnEvents, withdrawRequestedEvents, withdrawRejectedEvents] = await Promise.all([
+        const [depositEvents, withdrawnEvents, withdrawalRequestedEvents, withdrawalRejectedEvents, withdrawalCancelledEvents] = await Promise.all([
           vaultContract.queryFilter(depositFilter, fromBlock, currentBlock),
           vaultContract.queryFilter(withdrawnFilter, fromBlock, currentBlock),
-          vaultContract.queryFilter(withdrawRequestedFilter, fromBlock, currentBlock),
-          vaultContract.queryFilter(withdrawRejectedFilter, fromBlock, currentBlock),
+          vaultContract.queryFilter(withdrawalRequestedFilter, fromBlock, currentBlock),
+          vaultContract.queryFilter(withdrawalRejectedFilter, fromBlock, currentBlock),
+          vaultContract.queryFilter(withdrawalCancelledFilter, fromBlock, currentBlock),
         ]);
         
         const allTransactions: Transaction[] = [];
@@ -495,12 +497,12 @@ export const PrivateVaultDemo = () => {
           });
         }
         
-        // Process WithdrawRequested events
-        for (const event of withdrawRequestedEvents) {
+        // Process WithdrawalRequested events
+        for (const event of withdrawalRequestedEvents) {
           if (!('args' in event)) continue;
           const block = await event.getBlock();
           allTransactions.push({
-            type: "WithdrawRequested",
+            type: "WithdrawalRequested",
             amount: "Pending...",
             timestamp: block.timestamp,
             txHash: event.transactionHash,
@@ -509,16 +511,29 @@ export const PrivateVaultDemo = () => {
           });
         }
         
-        // Process WithdrawRejected events
-        for (const event of withdrawRejectedEvents) {
+        // Process WithdrawalRejected events
+        for (const event of withdrawalRejectedEvents) {
           if (!('args' in event)) continue;
           const block = await event.getBlock();
           allTransactions.push({
-            type: "WithdrawRejected",
+            type: "WithdrawalRejected",
             amount: "0 (Rejected)",
             timestamp: block.timestamp,
             txHash: event.transactionHash,
             to: event.args.to,
+            blockNumber: event.blockNumber,
+          });
+        }
+        
+        // Process WithdrawalCancelled events
+        for (const event of withdrawalCancelledEvents) {
+          if (!('args' in event)) continue;
+          const block = await event.getBlock();
+          allTransactions.push({
+            type: "WithdrawalCancelled",
+            amount: "Cancelled",
+            timestamp: block.timestamp,
+            txHash: event.transactionHash,
             blockNumber: event.blockNumber,
           });
         }
@@ -721,6 +736,20 @@ export const PrivateVaultDemo = () => {
           </div>
         ) : (
           <div className="space-y-3">
+            {(!vault.balanceHandle || vault.balanceHandle === "0x0000000000000000000000000000000000000000000000000000000000000000") && (
+              <div className="bg-yellow-50 border-l-4 border-yellow-400 p-3 rounded-r-lg">
+                <div className="flex items-start gap-2">
+                  <span className="text-yellow-600 text-lg">⚠️</span>
+                  <div>
+                    <p className="text-xs font-bold text-yellow-800 mb-1">No Balance Yet</p>
+                    <p className="text-xs text-yellow-700">
+                      This is a new contract deployment. Please make a deposit first to initialize your encrypted balance.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+            
             <div className="bg-white rounded-lg p-4 border border-gray-300">
               <p className="text-xs text-gray-500 mb-2">🔐 Encrypted Balance Handle:</p>
               <p className="text-xs font-mono text-gray-700 break-all bg-gray-50 p-2 rounded">
@@ -1197,22 +1226,25 @@ export const PrivateVaultDemo = () => {
                     const typeColors = {
                       "Deposit": "bg-white border-gray-200 hover:border-gray-300",
                       "Withdraw": "bg-white border-gray-200 hover:border-gray-300",
-                      "WithdrawRequested": "bg-white border-gray-200 hover:border-gray-300",
-                      "WithdrawRejected": "bg-white border-gray-200 hover:border-gray-300",
+                      "WithdrawalRequested": "bg-white border-gray-200 hover:border-gray-300",
+                      "WithdrawalRejected": "bg-white border-gray-200 hover:border-gray-300",
+                      "WithdrawalCancelled": "bg-white border-gray-200 hover:border-gray-300",
                     };
                     
                     const typeIcons = {
                       "Deposit": "↓",
                       "Withdraw": "↑",
-                      "WithdrawRequested": "⏳",
-                      "WithdrawRejected": "✕",
+                      "WithdrawalRequested": "⏳",
+                      "WithdrawalRejected": "✕",
+                      "WithdrawalCancelled": "⏱",
                     };
                     
                     const typeTextColors = {
                       "Deposit": "text-gray-900",
                       "Withdraw": "text-gray-900",
-                      "WithdrawRequested": "text-gray-900",
-                      "WithdrawRejected": "text-gray-900",
+                      "WithdrawalRequested": "text-gray-900",
+                      "WithdrawalRejected": "text-gray-900",
+                      "WithdrawalCancelled": "text-gray-900",
                     };
                     
                     return (
@@ -1222,8 +1254,9 @@ export const PrivateVaultDemo = () => {
                             <div className="flex items-center gap-2 mb-2">
                               <span className="text-2xl">{typeIcons[tx.type]}</span>
                               <span className={`font-bold text-sm ${typeTextColors[tx.type]}`}>
-                                {tx.type === "WithdrawRequested" ? "Waiting for Oracle Decryption" : 
-                                 tx.type === "WithdrawRejected" ? "Withdraw Rejected" : tx.type}
+                                {tx.type === "WithdrawalRequested" ? "Waiting for Oracle Decryption" : 
+                                 tx.type === "WithdrawalRejected" ? "Withdrawal Rejected" : 
+                                 tx.type === "WithdrawalCancelled" ? "Withdrawal Cancelled" : tx.type}
                               </span>
                             </div>
                             <div className="space-y-1 text-xs text-gray-600">
@@ -1244,8 +1277,8 @@ export const PrivateVaultDemo = () => {
                                 <span className="font-semibold">Block:</span> {tx.blockNumber}
                               </p>
                               
-                              {/* Extra info for WithdrawRequested */}
-                              {tx.type === "WithdrawRequested" && (
+                              {/* Extra info for WithdrawalRequested */}
+                              {tx.type === "WithdrawalRequested" && (
                                 <div className="mt-2 pt-2 border-t border-gray-200">
                                   <p className="text-gray-700 font-medium text-xs">
                                     🔐 <strong>Processing:</strong> Zama oracle is using FHE to decrypt your encrypted withdrawal amount (~16 sec)
