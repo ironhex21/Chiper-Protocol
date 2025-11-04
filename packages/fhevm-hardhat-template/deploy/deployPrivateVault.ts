@@ -11,25 +11,27 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   console.log(`Deploying to ${chainName} (chainId: ${chainId})`);
 
-  // Deploy PrivateVault (no constructor args - uses SepoliaConfig)
-  const vaultContract = await deploy("PrivateVault", {
+  // Deploy ChiperProtocol (constructor initializes TVL)
+  const vaultContract = await deploy("ChiperProtocol", {
     from: deployer,
     args: [],
     log: true,
+    waitConfirmations: chainName === "sepolia" ? 5 : 1,
+    contract: "contracts/PrivateVault.sol:ChiperProtocol",
   });
 
-  console.log(`PrivateVault deployed at: ${vaultContract.address}`);
+  console.log(`ChiperProtocol deployed at: ${vaultContract.address}`);
 
   // Generate ABI files for frontend
-  postDeploy(chainName, "PrivateVault");
+  postDeploy(chainName, "ChiperProtocol");
 
   console.log("\n=== Deployment Summary ===");
   console.log(`Network: ${chainName}`);
   console.log(`ChainId: ${chainId}`);
-  console.log(`PrivateVault: ${vaultContract.address}`);
+  console.log(`ChiperProtocol: ${vaultContract.address}`);
 };
 
 export default func;
 
-func.id = "deploy_privateVault";
-func.tags = ["PrivateVault"];
+func.id = "deploy_chiperProtocol";
+func.tags = ["ChiperProtocol"];
