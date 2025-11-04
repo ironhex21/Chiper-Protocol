@@ -17,8 +17,8 @@ import {
 } from "@fhevm/react";
 
 // Generated ABI files
-import { PrivateVaultAddresses } from "@/abi/PrivateVaultAddresses";
-import { PrivateVaultABI } from "@/abi/PrivateVaultABI";
+import { ChiperProtocolAddresses } from "@/abi/ChiperProtocolAddresses";
+import { ChiperProtocolABI } from "@/abi/ChiperProtocolABI";
 
 export type ClearValueType = {
   handle: string;
@@ -57,7 +57,7 @@ const getErrorMessage = (error: any): string => {
 };
 
 type PrivateVaultInfoType = {
-  abi: typeof PrivateVaultABI.abi;
+  abi: typeof ChiperProtocolABI.abi;
   address?: `0x${string}`;
   chainId?: number;
   chainName?: string;
@@ -67,23 +67,23 @@ function getPrivateVaultByChainId(
   chainId: number | undefined
 ): PrivateVaultInfoType {
   if (!chainId) {
-    return { abi: PrivateVaultABI.abi };
+    return { abi: ChiperProtocolABI.abi };
   }
 
   const entry =
-    PrivateVaultAddresses[
-      chainId.toString() as keyof typeof PrivateVaultAddresses
+    ChiperProtocolAddresses[
+      chainId.toString() as keyof typeof ChiperProtocolAddresses
     ];
 
   if (!entry || !("address" in entry) || entry.address === ethers.ZeroAddress) {
-    return { abi: PrivateVaultABI.abi, chainId };
+    return { abi: ChiperProtocolABI.abi, chainId };
   }
 
   return {
     address: entry.address as `0x${string}` | undefined,
     chainId: entry.chainId ?? chainId,
     chainName: entry.chainName,
-    abi: PrivateVaultABI.abi,
+    abi: ChiperProtocolABI.abi,
   };
 }
 
@@ -251,6 +251,12 @@ export const usePrivateVault = (parameters: {
       return;
     }
 
+    // Check if balance handle is valid (not zero/empty)
+    if (!balanceHandle || balanceHandle === "0x0000000000000000000000000000000000000000000000000000000000000000") {
+      setMessage("⚠️ No balance to decrypt. Please deposit ETH first.");
+      return;
+    }
+
     if (
       clearBalanceRef.current &&
       clearBalanceRef.current.handle === balanceHandle
@@ -320,7 +326,16 @@ export const usePrivateVault = (parameters: {
       setIsDecrypting(false);
     } catch (e: any) {
       console.error("[usePrivateVault] decrypt error:", e);
-      setMessage("Decrypt failed: " + getErrorMessage(e));
+      
+      // Better error messages for common issues
+      let errorMsg = getErrorMessage(e);
+      if (errorMsg.includes("HTTP code 500") || errorMsg.includes("relayer")) {
+        errorMsg = "⚠️ Decryption failed: The balance might be zero or not yet initialized. Try depositing first, then refresh the page.";
+      } else if (errorMsg.includes("Failed to fetch")) {
+        errorMsg = "⚠️ Network error: Cannot reach Zama relayer. Check your internet connection and try again.";
+      }
+      
+      setMessage("Decrypt failed: " + errorMsg);
       isDecryptingRef.current = false;
       setIsDecrypting(false);
     }
